@@ -45,7 +45,7 @@ void destroy_tags(OSMTAG *tags);
 
 typedef struct OSMNODE
 {
-    IDOBJECT o;
+    unsigned id;
     double lat;
     double lon;
 
