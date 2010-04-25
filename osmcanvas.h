@@ -20,12 +20,18 @@ class OsmCanvas
         void OnLeftUp(wxMouseEvent &evt);
         void OnMouseMove(wxMouseEvent &evt);
 
+        void OnRenderThreadDone(wxCommandEvent &evt);
+
         double m_scale;
         double m_xOffset, m_yOffset;
 
         int m_lastX, m_lastY;
         bool m_dragging;
+
+        bool m_threadRuns, m_threadMustRestart, m_threadMustStop;
 };
+
+
 
 
 #endif
