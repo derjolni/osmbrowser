@@ -144,36 +144,34 @@ void TileDrawer::Rect(Renderer *renderer, wxString const &text, double lon1, dou
 }
 
 
-// render using default colours. should plug in rule engine here
 void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 {
-	bool draw = true;
 
 	if (m_drawRule && (m_drawRule->Evaluate(r) == LogicalExpression::S_FALSE))
 	{
-		draw = false;
+		return;
 	}
 
-	if (draw)
+	wxColour c = wxColour(150,150,150);
+	bool poly = false;
+	int layer = 1;
+	if (m_colorRules)
 	{
-		wxColour c = wxColour(150,150,150);
-		bool poly = false;
-		int layer = 1;
-		if (m_colorRules)
+		for (int i = 0; i < m_colorRules->m_num; i++)
 		{
-			for (int i = 0; i < m_colorRules->m_num; i++)
+			if (m_colorRules->m_rules[i]->Evaluate(r) == LogicalExpression::S_TRUE)
 			{
-				if (m_colorRules->m_rules[i]->Evaluate(r) == LogicalExpression::S_TRUE)
-				{
-					c = m_colorRules->m_pickers[i]->GetColour();
-					poly = m_colorRules->m_checkBoxes[i]->IsChecked();
-					layer = m_colorRules->m_layers[i]->GetSelection();
-					break; // stop after first match
-				}
+				c = m_colorRules->m_pickers[i]->GetColour();
+				poly = m_colorRules->m_checkBoxes[i]->IsChecked();
+				layer = m_colorRules->m_layers[i]->GetSelection();
+				break; // stop after first match
 			}
 		}
+	}
 
-		if (job->m_curLayer < 0 || job->m_curLayer == layer)
+	if (job->m_curLayer < 0 || job->m_curLayer == layer)
+	{
+		if (!poly)
 		{
 			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
 			{
@@ -181,8 +179,29 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 				job->m_renderedIds.Add(r->m_resolvedWays[i]->m_id);
 			}
 		}
-	}
+		else
+		{
+			job->m_renderer->Begin(Renderer::R_MULTIPOLYGON, layer);
+			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
+			{
+				OsmWay *w = r->m_resolvedWays[i];
+				//!should check for role=outer&inner here and call r->Begin(R_OUTER, layer). sicne cairorenderer ignores these anyway (for now) we just leave it
+				for (unsigned j = 0; j < w->m_numResolvedNodes; j++)
+				{
+					OsmNode *node = w->m_resolvedNodes[j];
 
+					if (node)
+					{
+						job->m_renderer->AddPoint(node->Lon(), node->Lat());
+					}
+
+				}
+
+				job->m_renderedIds.Add(w->m_id);
+			}
+			job->m_renderer->End();
+		}
+	}
 }
 
 // render using default colours. should plug in rule engine here

@@ -82,7 +82,7 @@ class CairoRenderer
 		{
 			m_type = type;
 			m_curLayer = layer;
-
+			cairo_set_fill_rule (layers[layer], CAIRO_FILL_RULE_EVEN_ODD);
 			cairo_new_path(layers[layer]);
 		}
 
@@ -95,6 +95,8 @@ class CairoRenderer
 		{
 			switch(m_type)
 			{
+				case R_MULTIPOLYGON:
+					//fallthrough
 				case R_POLYGON:
 					cairo_set_source_rgba(layers[m_curLayer], m_fillR, m_fillG, m_fillB, m_fillA);
 					cairo_fill_preserve(layers[m_curLayer]);
@@ -103,6 +105,12 @@ class CairoRenderer
 					cairo_set_line_width(layers[m_curLayer], m_lineWidth);
 					cairo_set_source_rgba(layers[m_curLayer], m_lineR, m_lineG, m_lineB, m_lineA);
 					cairo_stroke(layers[m_curLayer]);
+					break;
+				case R_INNER:
+					m_type = R_MULTIPOLYGON;
+					break;
+				case R_OUTER:
+					m_type = R_MULTIPOLYGON;
 					break;
 			}
 		}

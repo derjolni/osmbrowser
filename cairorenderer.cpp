@@ -27,7 +27,7 @@ void CairoRenderer::Commit()
 
 void CairoPdfRenderer::Begin(Renderer::TYPE type, int layer)
 {
-	m_type = type;
+	cairo_set_fill_rule (m_context, CAIRO_FILL_RULE_EVEN_ODD);
 	cairo_new_path(m_context);
 }
 
@@ -41,6 +41,8 @@ void CairoPdfRenderer::End()
 {
 	switch(m_type)
 	{
+		case R_MULTIPOLYGON:
+			//fallthrough
 		case R_POLYGON:
 			cairo_set_source_rgba(m_context, m_fillR, m_fillG, m_fillB, m_fillA);
 			cairo_fill_preserve(m_context);
@@ -49,6 +51,9 @@ void CairoPdfRenderer::End()
 			cairo_set_line_width(m_context, m_lineWidth);
 			cairo_set_source_rgba(m_context, m_lineR, m_lineG, m_lineB, m_lineA);
 			cairo_stroke(m_context);
+		case R_INNER:
+			break;
+		case R_OUTER:
 			break;
 	}
 }

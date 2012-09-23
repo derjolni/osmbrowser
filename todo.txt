@@ -14,3 +14,11 @@
 - read shapefiles?
 - create list of tags in map (with counts)
 
+
+
+
+=======multipolygons==============
+the renderer should colelct all outer/inner polygon parts and turn them into one big polygon before rendering:
+- for all ways in the polygon (outer/inner) look at both endpoints. Find a matching endpoint (either on the same way or on another one in the relation)
+- when a match is found join both parts into a single (temporary ) way
+- whe all matches have been connected and there are still endpointsm left, join these to the nearest endpoint
