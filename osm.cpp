@@ -514,6 +514,8 @@ IdObjectStore::~IdObjectStore()
 	}
 
 	delete [] m_locator;
+
+	WX_CLEAR_ARRAY(m_objects);
 }
 
 void IdObjectStore::AddObject(IdObject *o)
@@ -526,7 +528,7 @@ void IdObjectStore::AddObject(IdObject *o)
 
 	unsigned key = o->m_id & m_mask;
 
-	m_locator[key] = new ObjectList(o, m_locator[key]);
+	m_locator[key] = new ObjectList(m_objects.GetCount() - 1, m_locator[key]);
 	m_listSizes[key]++;
 }
 
@@ -538,9 +540,9 @@ IdObject *IdObjectStore::GetObject(unsigned id)
 
 	while (o)
 	{
-		if (o->m_object->m_id == id)
+		if (m_objects[o->m_index]->m_id == id)
 		{
-			return o->m_object;
+			return m_objects[o->m_index];
 		}
 		o = o->m_next;
 	}

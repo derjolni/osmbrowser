@@ -501,21 +501,19 @@ class IdObjectStore
 		class ObjectList
 		{
 			public:
-			ObjectList(IdObject *object, ObjectList *tail)
+			ObjectList(unsigned index, ObjectList *tail)
 			{
 				m_next = tail;
-				m_object = object;
+				m_index = index;
 			}
 
 			~ObjectList()
 			{
 				if (m_next)
 					delete m_next;
-
-				delete m_object;
 			}
 			ObjectList *m_next;
-			IdObject *m_object;
+			unsigned m_index;
 		};
 	public:
 		IdObjectStore(unsigned bitmaskSize);
