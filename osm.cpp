@@ -455,7 +455,7 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 	for (unsigned i = 0; i < size; i++)
 	{
 		m_resolvedWays[i] = (OsmWay *)wayStore->GetObject(o->m_id);
-		m_roles[i] = o->m_role;
+		m_roles.Add(o->m_role);
 		o = (IdObjectWithRole *)o->m_next;
 
 		if (!m_resolvedWays[i])
