@@ -446,6 +446,28 @@ class IdObject
 		unsigned m_id;
 };
 
+class IdObjectWithRole
+	: public IdObject
+{
+	public:
+		enum ROLE
+		{
+			OUTER,
+			INNER
+		};
+
+		IdObjectWithRole(unsigned id, IdObjectWithRole *next, ROLE role)
+			: IdObject(id, next)
+		{
+			m_role = role;
+		}
+
+		ROLE m_role;
+
+};
+
+WX_DEFINE_ARRAY_INT(IdObjectWithRole::ROLE, RolesArray);
+
 WX_DECLARE_HASH_SET(unsigned, wxIntegerHash, wxIntegerEqual, WXIdSet);
 
 class IdSet
@@ -727,15 +749,17 @@ class OsmRelation
 		}
 	}
 	
-	IdObject *m_wayRefs;
-	void AddWayRef(unsigned id)
+	IdObjectWithRole *m_wayRefs;
+
+	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role)
 	{
-		m_wayRefs = new IdObject(id, m_wayRefs);
+		m_wayRefs = new IdObjectWithRole(id, m_wayRefs, role);
 	}
 	
 	void Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore);
 
 	OsmWay **m_resolvedWays;
+	RolesArray m_roles; // filled by Resolve
 	unsigned m_numResolvedWays;
 	
 };
@@ -776,7 +800,7 @@ class OsmData
 	void EndRelation();
 
 	void AddNodeRef(unsigned id);
-	void AddWayRef(unsigned id);
+	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role);
 
 	void AddTag(char const *k, char const *v);
 	void AddAttribute(char const *k, char const *v);

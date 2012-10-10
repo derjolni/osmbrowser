@@ -13,6 +13,9 @@
 	#define XMLCALL
 #endif
 
+
+#define FILEFORMAT_VERSION "OsmBrowserCachev1.1\004"
+
 static XML_Char const *get_attribute(const XML_Char *name, const XML_Char **attrs)
 {
 	int count = 0;
@@ -123,6 +126,13 @@ void XMLCALL start_element_handler(void *user_data, const XML_Char *name, const 
 	{
 		XML_Char const *type = get_attribute("type", attrs);
 		XML_Char const *idS = get_attribute("ref", attrs);
+		XML_Char const *roleS = get_attribute("role", attrs);
+
+		IdObjectWithRole::ROLE role = IdObjectWithRole::OUTER;
+		if (roleS && !strcmp(roleS, "inner"))
+		{
+			role = IdObjectWithRole::INNER;
+		}
 		unsigned id = strtoul(idS, NULL, 0);
 		assert(idS && type);
 
@@ -132,7 +142,7 @@ void XMLCALL start_element_handler(void *user_data, const XML_Char *name, const 
 		}
 		else if (!strcmp(type, "way"))
 		{
-			o->AddWayRef(id);
+			o->AddWayRef(id, role);
 		}
 	}
 }
@@ -295,6 +305,7 @@ static void ReadWay(OsmData *d, FILE *f)
 static void ReadRelation(OsmData *d, FILE *f)
 {
 	unsigned id, tagCount, nodeRefCount, wayRefCount;
+	IdObjectWithRole::ROLE role;
 	int ret;
 	ret = fread(&id, sizeof(id), 1, f);
 	assert(ret == 1);
@@ -314,7 +325,9 @@ static void ReadRelation(OsmData *d, FILE *f)
 	{
 		ret = fread(&id, sizeof(id), 1, f);
 		assert(ret == 1);
-		d->AddWayRef(id);
+		ret = fread(&role, sizeof(role), 1, f);
+		assert(ret == 1);
+		d->AddWayRef(id, role);
 	}
 	ret = fread(&tagCount, sizeof(tagCount), 1, f);
 	assert(ret == 1);
@@ -327,6 +340,22 @@ OsmData *parse_binary(FILE *f, bool skipAttribs)
 {
 	OsmData *ret = new OsmData();
 
+	char buffer[1024];
+
+
+	int rret = fread(buffer, strlen(FILEFORMAT_VERSION), 1, f);
+
+	if (rret !=1)
+	{
+		printf("reading failed!");
+		return NULL;
+	}
+
+	if (strcmp(FILEFORMAT_VERSION, buffer))
+	{
+		printf("not a valid OsmBrowser cache file!");
+		return NULL; // invalid cache data
+	}
 
 	ret->m_skipAttribs = skipAttribs;
 	unsigned count = 0;
@@ -394,6 +423,7 @@ static void WriteTags(OsmTag *tags, FILE *f)
 
 void write_binary(OsmData *d, FILE *f)
 {
+	fputs(FILEFORMAT_VERSION, f);
 	unsigned zero = 0;
 	printf("writing nodes...\n" );
 	for (OsmNode *n = static_cast<OsmNode *>(d->m_nodes.m_content); n ; n = static_cast<OsmNode *>(n->m_next))
@@ -481,9 +511,10 @@ void write_binary(OsmData *d, FILE *f)
 			unsigned size = r->m_wayRefs->GetSize();
 			fwrite(&(size), sizeof(size), 1, f);
 
-			for (IdObject *i = r->m_wayRefs; i; i = static_cast<IdObject *>(i->m_next))
+			for (IdObjectWithRole *i = r->m_wayRefs; i; i = static_cast<IdObjectWithRole *>(i->m_next))
 			{
 				fwrite(&(i->m_id), sizeof(i->m_id), 1, f);
+				fwrite(&(i->m_role), sizeof(i->m_role), 1, f);
 			}
 			
 		}
@@ -494,7 +525,9 @@ void write_binary(OsmData *d, FILE *f)
 			for (unsigned  i = 0; i < r->m_numResolvedWays; i++)
 			{
 				unsigned id = r->m_resolvedWays[i]->m_id;
+				IdObjectWithRole::ROLE role = r->m_roles[i];
 				fwrite(&(id), sizeof(id), 1, f);
+				fwrite(&(role), sizeof(id), 1, f);
 			}
 		}
 		else

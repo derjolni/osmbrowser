@@ -450,12 +450,13 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 		m_resolvedWays = new OsmWay *[size];
 	}
 
-	IdObject *o = m_wayRefs;
+	IdObjectWithRole *o = m_wayRefs;
 	bool resolvedAll = true;
 	for (unsigned i = 0; i < size; i++)
 	{
 		m_resolvedWays[i] = (OsmWay *)wayStore->GetObject(o->m_id);
-		o = (IdObject *)o->m_next;
+		m_roles[i] = o->m_role;
+		o = (IdObjectWithRole *)o->m_next;
 
 		if (!m_resolvedWays[i])
 		{
@@ -643,11 +644,11 @@ void OsmData::AddNodeRef(unsigned id)
 	}
 }
 
-void OsmData::AddWayRef(unsigned id)
+void OsmData::AddWayRef(unsigned id, IdObjectWithRole::ROLE role)
 {
 	assert(m_parsingState == PARSE_RELATION);
 
-	((OsmRelation *)(m_relations.m_content))->AddWayRef(id);
+	((OsmRelation *)(m_relations.m_content))->AddWayRef(id, role);
 }
 
 void OsmData::AddTag(char const *key, char const *value)

@@ -3,6 +3,7 @@
 // osmbrowser is licenced under the gpl v3
 #include "tiledrawer.h"
 #include "rulecontrol.h"
+#include "polygonassembler.h"
 
 TileWay::TileWay(OsmWay *way, TileWay *next)
 	: ListObject(next)
@@ -181,25 +182,14 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 		}
 		else
 		{
-			job->m_renderer->Begin(Renderer::R_MULTIPOLYGON, layer);
+			PolygonAssembler a;
 			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
 			{
 				OsmWay *w = r->m_resolvedWays[i];
-				//!should check for role=outer&inner here and call r->Begin(R_OUTER, layer). sicne cairorenderer ignores these anyway (for now) we just leave it
-				for (unsigned j = 0; j < w->m_numResolvedNodes; j++)
-				{
-					OsmNode *node = w->m_resolvedNodes[j];
-
-					if (node)
-					{
-						job->m_renderer->AddPoint(node->Lon(), node->Lat());
-					}
-
-				}
-
+				a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
 				job->m_renderedIds.Add(w->m_id);
 			}
-			job->m_renderer->End();
+			a.Render(job->m_renderer, job->m_curLayer <0 ? layer : 0);
 		}
 	}
 }
