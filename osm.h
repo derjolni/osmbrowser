@@ -446,6 +446,10 @@ class IdObject
 		unsigned m_id;
 };
 
+int CompareIdObjectPointers(IdObject *o1, IdObject *o2);
+
+WX_DEFINE_SORTED_ARRAY(IdObject *, SortedIdObjectArray);
+
 class IdObjectWithRole
 	: public IdObject
 {

@@ -7,6 +7,21 @@
 #include <string.h>
 
 
+int CompareIdObjectPointers(IdObject *o1, IdObject *o2)
+{
+	if (o1->m_id > o2->m_id)
+	{
+		return 1;
+	}
+	else if (o1->m_id < o2->m_id)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+
 TagStore::TagStore()
 {
 	m_keys = NULL;
