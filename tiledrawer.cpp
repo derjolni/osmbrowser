@@ -34,8 +34,6 @@ TileWay *OsmTile::GetWaysContainingNode(OsmNode *node)
 
 TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat, double dLon, double dLat)
 {
-	m_tiles = NULL;
-
 	m_selection = NULL;
 	m_selectionColor = wxColour(255,0,0);
 	m_selectedWay = NULL;
@@ -59,8 +57,8 @@ TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat
 		m_tileArray[x] = new OsmTile *[m_yNum];
 		for (unsigned y = 0; y < m_yNum; y++)
 		{
-			m_tiles = new OsmTile(id++, m_minLon + x * dLon , m_minLat + y * dLat, m_minLon + (x + 1) * dLon, m_minLat + (y+1) * dLat, m_tiles);
-			m_tileArray[x][y] = m_tiles;
+			m_tiles.Add(new OsmTile(id++, m_minLon + x * dLon , m_minLat + y * dLat, m_minLon + (x + 1) * dLon, m_minLat + (y+1) * dLat));
+			m_tileArray[x][y] = m_tiles.Last();
 		}
 	}
  }

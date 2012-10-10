@@ -434,21 +434,24 @@ class OsmTag
 };
 
 class IdObject
-	: public ListObject
 {
 	public:
-		IdObject(unsigned id = 0, IdObject *next = NULL)
-			: ListObject(next)
+		IdObject(unsigned id = 0)
 		{
 			m_id = id;
 		}
-			
+
+		virtual ~IdObject()
+		{
+		}
+
 		unsigned m_id;
 };
 
 int CompareIdObjectPointers(IdObject *o1, IdObject *o2);
 
 WX_DEFINE_SORTED_ARRAY(IdObject *, SortedIdObjectArray);
+WX_DEFINE_ARRAY(IdObject *, IdObjectArray);
 
 class IdObjectWithRole
 	: public IdObject
@@ -460,8 +463,8 @@ class IdObjectWithRole
 			INNER
 		};
 
-		IdObjectWithRole(unsigned id, IdObjectWithRole *next, ROLE role)
-			: IdObject(id, next)
+		IdObjectWithRole(unsigned id, ROLE role)
+			: IdObject(id)
 		{
 			m_role = role;
 		}
@@ -470,6 +473,7 @@ class IdObjectWithRole
 
 };
 
+WX_DEFINE_ARRAY(IdObjectWithRole *, IdObjectWithRoleArray);
 WX_DEFINE_ARRAY_INT(IdObjectWithRole::ROLE, RolesArray);
 
 WX_DECLARE_HASH_SET(unsigned, wxIntegerHash, wxIntegerEqual, WXIdSet);
@@ -538,7 +542,7 @@ class IdObjectStore
 		}
 
 		ObjectList **m_locator;
-		IdObject *m_content;
+		IdObjectArray m_objects;
 		int m_size;
 		unsigned m_mask;
 		wxArrayInt m_listSizes;
@@ -552,8 +556,8 @@ class IdObjectWithTags
 	: public IdObject
 {
 	public:
-		IdObjectWithTags(unsigned id = 0, IdObjectWithTags *next = NULL)
-			: IdObject(id, next)
+		IdObjectWithTags(unsigned id = 0)
+			: IdObject(id)
 		{
 			m_tags = NULL;
 		}
@@ -595,8 +599,8 @@ class OsmNode
 {
 	public:
 
-	OsmNode(unsigned id, double lat, double lon, OsmNode *next = NULL)
-		: IdObjectWithTags(id, next)
+	OsmNode(unsigned id, double lat, double lon)
+		: IdObjectWithTags(id)
 	{
 		if (lon > 180.0)
 			lon -= 360.0;
@@ -634,22 +638,17 @@ class OsmWay
 {
 	public:
 
-	OsmWay(unsigned id, OsmWay *next = NULL)
-		: IdObjectWithTags(id, next)
+	OsmWay(unsigned id)
+		: IdObjectWithTags(id)
 	{
-		m_nodeRefs = NULL;
 		m_resolvedNodes = NULL;
 		m_numResolvedNodes = 0;
 		m_relations = NULL;
-		m_firstId = 0;
 	}
 
 	~OsmWay()
 	{
-		if (m_nodeRefs)
-		{
-			m_nodeRefs->DestroyList();
-		}
+		WX_CLEAR_ARRAY(m_nodeRefs);
 
 		if (m_resolvedNodes)
 		{
@@ -676,8 +675,8 @@ class OsmWay
 
 	OsmNode *GetClosestNode(double lon, double lat, double *foundDistSquared);
 
-	unsigned FirstNodeId() { return m_firstId; }
-	unsigned LastNodeId() { return m_nodeRefs ? m_nodeRefs->m_id : 0 ; }
+	unsigned FirstNodeId() { return m_nodeRefs.GetCount() ? m_nodeRefs[0]->m_id : 0 ; }
+	unsigned LastNodeId() { return m_nodeRefs.GetCount() ? m_nodeRefs.Last()->m_id : 0 ; }
 
 	bool ContainsNode(OsmNode const *node) const
 	{
@@ -692,14 +691,10 @@ class OsmWay
 
 	void AddNodeRef(unsigned id)
 	{
-		if (!m_nodeRefs)
-		{
-			m_firstId = id;
-		}
-		m_nodeRefs = new IdObject(id, m_nodeRefs);
+		m_nodeRefs.Add(new IdObject(id));
 	}
 
-	IdObject *m_nodeRefs;
+	IdObjectArray m_nodeRefs;
 
 	void Resolve(IdObjectStore *store);
 	// these are only valid after calling resolve
@@ -709,7 +704,6 @@ class OsmWay
 
 	// gets filled by OsmRelation::Resolve, so will be empty until the relations are resolved
 	OsmRelationList *m_relations;
-	unsigned m_firstId;
 };
 
 
@@ -717,10 +711,9 @@ class OsmRelation
 	: public OsmWay
 {
 	public:
-	OsmRelation(unsigned id, OsmRelation *next = NULL)
-		: OsmWay(id, next)
+	OsmRelation(unsigned id)
+		: OsmWay(id)
 	{
-		m_wayRefs = NULL;
 		m_resolvedWays = NULL;
 		m_numResolvedWays = 0;
 	}
@@ -741,10 +734,7 @@ class OsmRelation
 	
 	~OsmRelation()
 	{
-		if (m_wayRefs)
-		{
-			m_wayRefs->DestroyList();
-		}
+		WX_CLEAR_ARRAY(m_wayRefs);
 
 		if (m_resolvedWays)
 		{
@@ -752,11 +742,11 @@ class OsmRelation
 		}
 	}
 	
-	IdObjectWithRole *m_wayRefs;
+	IdObjectWithRoleArray m_wayRefs;
 
 	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role)
 	{
-		m_wayRefs = new IdObjectWithRole(id, m_wayRefs, role);
+		m_wayRefs.Add(new IdObjectWithRole(id, role));
 	}
 	
 	void Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore);

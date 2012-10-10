@@ -29,8 +29,8 @@ class OsmTile
 	: public IdObject, public DRect
 {
 	public:
-		OsmTile(unsigned id, double minLon, double minLat, double maxLon, double maxLat, OsmTile *next)
-			: IdObject(id, next), DRect(minLon, minLat, maxLon - minLon, maxLat - minLat)
+		OsmTile(unsigned id, double minLon, double minLat, double maxLon, double maxLat)
+			: IdObject(id), DRect(minLon, minLat, maxLon - minLon, maxLat - minLat)
 		{
 			m_ways = NULL;
 //            printf("created tile %u %g,%g  %g-%g\n", id, minLon, minLat, maxLon, maxLat);
@@ -56,6 +56,9 @@ class OsmTile
 		TileWay *m_ways;
 
 };
+
+WX_DEFINE_ARRAY(OsmTile *, OsmTileArray);
+
 
 class Span
 	: public ListObject
@@ -278,7 +281,7 @@ class TileDrawer
 
 		~TileDrawer()
 		{
-			m_tiles->DestroyList();
+			WX_CLEAR_ARRAY(m_tiles);
 			for (unsigned x = 0; x < m_xNum; x++)
 			{
 				delete [] m_tileArray[x];
@@ -286,16 +289,16 @@ class TileDrawer
 			delete [] m_tileArray;
 		}
 
-		void AddWays(OsmWay *ways)
+		void AddWays(IdObjectArray const &ways)
 		{
-			unsigned count = 0;
-			for (OsmWay *w = ways; w ; w = static_cast<OsmWay *>(w->m_next))
+			for (unsigned w  = 0; w < ways.GetCount(); w++)
 			{
-				count++;
-				AddWay(w);
-				if (!(count % 10000))
+				OsmWay *way = dynamic_cast<OsmWay *>(ways[w]);
+				wxASSERT(way);
+				AddWay(way);
+				if (!(w % 10000))
 				{
-					printf("sorted %uK ways\n", count / 1000);
+					printf("sorted %uK ways\n", w / 1000);
 				}
 			}
 		}
@@ -383,7 +386,7 @@ class TileDrawer
 
 		void LonLatToIndex(double lon, double lat, int *x, int *y);
 
-		OsmTile *m_tiles;
+		OsmTileArray m_tiles;
 		OsmTile ***m_tileArray;
 		unsigned m_xNum, m_yNum;
 		double m_minLon, m_minLat, m_w, m_h, m_dLon, m_dLat;
