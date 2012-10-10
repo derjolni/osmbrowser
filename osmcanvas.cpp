@@ -52,15 +52,19 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 	{
 		printf("found preprocessed file %s, opening that instead.\n", (char const *)(binFile.mb_str(wxConvUTF8)) );
 		m_data = parse_binary(infile, true);
+		fclose(infile);
 	}
-	else
+
+	if (!m_data) // no cachefile, or reading acache failed
 	{
 		if (fileName.IsSameAs(wxT("-")))
 		{
+			printf("opening stdin");
 			infile = stdin;
 		}
 		else
 		{
+			wxPrintf(wxT("Opening file ") + fileName + wxT("\n"));
 			infile = fopen(fileName.mb_str(wxConvUTF8), "r");
 		}
 
@@ -74,6 +78,12 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 		if (fileName.EndsWith(wxT(".cache")))
 		{
 			m_data = parse_binary(infile, true);
+			if (!m_data)
+			{
+				puts("invalid cache file:");
+				puts(fileName.mb_str(wxConvUTF8));
+				abort();
+			}
 		}
 		else
 		{
@@ -89,8 +99,8 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 				fclose(outFile);
 			}
 		}
+		fclose(infile);
 	}
-	fclose(infile);
 
 	double xscale = 1200.0 / (m_data->m_maxlon - m_data->m_minlon);
 	double yscale = 1200.0 / (m_data->m_maxlon - m_data->m_minlon);
