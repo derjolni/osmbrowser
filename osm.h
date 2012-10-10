@@ -497,17 +497,15 @@ class IdObjectStore
 			{
 				m_next = tail;
 				m_object = object;
-				m_listSize = tail ? tail->m_listSize + 1 : 1;
 			}
 
 			~ObjectList()
 			{
 				if (m_next)
 					delete m_next;
-					
+
 				delete m_object;
 			}
-			unsigned m_listSize;
 			ObjectList *m_next;
 			IdObject *m_object;
 		};
@@ -522,7 +520,7 @@ class IdObjectStore
 			int c;
 			for (int i = 0; i < m_size; i++)
 			{
-				c = m_locator[i] ? m_locator[i]->m_listSize : 0;
+				c = m_listSizes[i];
 				s1 += c;
 				s2 += c * c;
 				if (c > *maxlen)
@@ -539,6 +537,7 @@ class IdObjectStore
 		IdObject *m_content;
 		int m_size;
 		unsigned m_mask;
+		wxArrayInt m_listSizes;
 
 		void AddObject(IdObject *object);
 		IdObject *GetObject(unsigned id);

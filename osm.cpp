@@ -489,7 +489,8 @@ IdObjectStore::IdObjectStore(unsigned bitmaskSize)
 	m_locator = new ObjectList *[m_size];
 
 	memset(m_locator, 0, sizeof(ObjectList *) * m_size);
-	
+
+	m_listSizes.Add(0, m_size);
 }
 
 
@@ -517,7 +518,7 @@ void IdObjectStore::AddObject(IdObject *o)
 	unsigned key = o->m_id & m_mask;
 
 	m_locator[key] = new ObjectList(o, m_locator[key]);
-	
+	m_listSizes[key]++;
 }
 
 IdObject *IdObjectStore::GetObject(unsigned id)
