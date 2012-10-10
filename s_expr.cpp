@@ -9,7 +9,7 @@ ExpressionParser::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int 
 {
 	char const *operators[] =
 	{
-		"not", "and", "or", "tag"
+		"not", "and", "or", "tag", "type"
 	};
 
 	if (s[*pos] == '-')
