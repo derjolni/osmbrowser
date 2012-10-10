@@ -282,6 +282,7 @@ class TileDrawer
 		~TileDrawer()
 		{
 			WX_CLEAR_ARRAY(m_tiles);
+			m_tiles.Clear();
 			for (unsigned x = 0; x < m_xNum; x++)
 			{
 				delete [] m_tileArray[x];

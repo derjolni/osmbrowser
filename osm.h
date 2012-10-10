@@ -647,6 +647,7 @@ class OsmWay
 	~OsmWay()
 	{
 		WX_CLEAR_ARRAY(m_nodeRefs);
+		m_nodeRefs.Clear();
 
 		if (m_resolvedNodes)
 		{
@@ -733,6 +734,7 @@ class OsmRelation
 	~OsmRelation()
 	{
 		WX_CLEAR_ARRAY(m_wayRefs);
+		m_wayRefs.Clear();
 
 		if (m_resolvedWays)
 		{

@@ -440,6 +440,7 @@ void OsmWay::Resolve(IdObjectStore *store)
 	if (resolvedAll)
 	{
 		WX_CLEAR_ARRAY(m_nodeRefs);
+		m_nodeRefs.Clear();
 	}
 
 }
@@ -485,6 +486,7 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 	if (resolvedAll)
 	{
 		WX_CLEAR_ARRAY(m_wayRefs);
+		m_wayRefs.Clear();
 	}
 
 }
@@ -516,6 +518,7 @@ IdObjectStore::~IdObjectStore()
 	delete [] m_locator;
 
 	WX_CLEAR_ARRAY(m_objects);
+	m_objects.Clear();
 }
 
 void IdObjectStore::AddObject(IdObject *o)
