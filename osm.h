@@ -12,6 +12,7 @@
 #include <wx/hashmap.h>
 #include <wx/hashset.h>
 #include <wx/arrstr.h>
+#include <wx/dynarray.h>
 
 #define DISTSQUARED(x1, y1, x2, y2)  (((x1) - (x2)) * ((x1) - (x2)) + ((y1) - (y2)) * ((y1) - (y2)))
 
@@ -615,6 +616,7 @@ class OsmWay
 		m_resolvedNodes = NULL;
 		m_numResolvedNodes = 0;
 		m_relations = NULL;
+		m_firstId = 0;
 	}
 
 	~OsmWay()
@@ -649,6 +651,8 @@ class OsmWay
 
 	OsmNode *GetClosestNode(double lon, double lat, double *foundDistSquared);
 
+	unsigned FirstNodeId() { return m_firstId; }
+	unsigned LastNodeId() { return m_nodeRefs ? m_nodeRefs->m_id : 0 ; }
 
 	bool ContainsNode(OsmNode const *node) const
 	{
@@ -663,6 +667,10 @@ class OsmWay
 
 	void AddNodeRef(unsigned id)
 	{
+		if (!m_nodeRefs)
+		{
+			m_firstId = id;
+		}
 		m_nodeRefs = new IdObject(id, m_nodeRefs);
 	}
 
@@ -676,6 +684,7 @@ class OsmWay
 
 	// gets filled by OsmRelation::Resolve, so will be empty until the relations are resolved
 	OsmRelationList *m_relations;
+	unsigned m_firstId;
 };
 
 
@@ -789,6 +798,9 @@ class OsmData
 
 };
 
+WX_DEFINE_ARRAY(OsmWay *, WayPointerArray);
+WX_DEFINE_ARRAY(OsmNode *, NodePointerArray);
+WX_DEFINE_ARRAY(OsmRelation *, RelationPointerArray);
 
 
 #endif

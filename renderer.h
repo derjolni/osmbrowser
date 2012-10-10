@@ -76,6 +76,16 @@ class Renderer
 			return ret;
 		}
 
+		enum POINTADDMODE
+		{
+			NORMAL,
+			REPEATFIRST,
+			SKIPFIRST,
+			ONLYFIRST
+		};
+
+		void AddWayPoints(OsmWay *w, bool reverse, POINTADDMODE mode); // skipFirst will skip first *drawn* . when reverse==true this is the last in the Way
+
 	protected:
 		double m_offX, m_offY, m_scaleX, m_scaleY;
 		double m_outputWidth, m_outputHeight;
