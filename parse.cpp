@@ -538,7 +538,7 @@ void write_binary(OsmData *d, FILE *f)
 				unsigned id = rel->m_resolvedWays[i]->m_id;
 				IdObjectWithRole::ROLE role = rel->m_roles[i];
 				fwrite(&(id), sizeof(id), 1, f);
-				fwrite(&(role), sizeof(id), 1, f);
+				fwrite(&(role), sizeof(role), 1, f);
 			}
 		}
 		else
