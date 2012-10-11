@@ -83,7 +83,10 @@ class CairoRenderer
 			m_type = type;
 			m_curLayer = layer;
 			cairo_set_fill_rule (layers[layer], CAIRO_FILL_RULE_EVEN_ODD);
-			cairo_new_path(layers[layer]);
+			if(type != R_INNER && type != R_OUTER)
+			{
+				cairo_new_path(layers[layer]);
+			}
 		}
 
 		void AddPoint(double x, double y, double xshift = 0, double yshift = 0)

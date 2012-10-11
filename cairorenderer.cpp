@@ -28,7 +28,10 @@ void CairoRenderer::Commit()
 void CairoPdfRenderer::Begin(Renderer::TYPE type, int layer)
 {
 	cairo_set_fill_rule (m_context, CAIRO_FILL_RULE_EVEN_ODD);
-	cairo_new_path(m_context);
+	if (type != R_INNER && type != R_OUTER)
+	{
+		cairo_new_path(m_context);
+	}
 }
 
 

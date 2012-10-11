@@ -30,7 +30,7 @@ void PolygonAssembler::AssembleAndRender(Renderer *r, WayPointerArray *a, bool i
 		OsmWay *cur = start;
 		a->RemoveAt(0);
 
-		r->Begin(inner ? Renderer::R_INNER : Renderer::R_INNER, layer);
+		r->Begin(inner ? Renderer::R_INNER : Renderer::R_OUTER, layer);
 		bool reverse = false;
 		if (cur->FirstNodeId() == cur->LastNodeId() )
 		{
