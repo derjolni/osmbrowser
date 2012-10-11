@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Osmbrowser : a program to browse osm maps (and export simplistic maps to pdf) " />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Osmbrowser</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/wziard/osmbrowser">View on GitHub</a>
+
+          <h1 id="project_title">Osmbrowser</h1>
+          <h2 id="project_tagline">a program to browse osm maps (and export simplistic maps to pdf) </h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/wziard/osmbrowser/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/wziard/osmbrowser/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>What</h1>
+
+<p>osmbrowser is a simple app to browse the data in an openstreetmap xml file.</p>
+
+<h1>Why</h1>
+
+<ul>
+<li><p>I Couldn't find an application which:</p></li>
+<li><p>could display a complete map of the Netherlands</p></li>
+<li><p>could filter which tags are shown</p></li>
+</ul><p>Features:</p>
+
+<ul>
+<li><p>browse reasonably large maps (on a 8GB machine a complete map of the Netherlands is quite workable)</p></li>
+<li><p>dump simplistic map view to pdf</p></li>
+<li><p>filter which tags are visible on the map</p></li>
+</ul><p>Non Features:</p>
+
+<ul>
+<li>docs. no docs ;-)</li>
+</ul><p>(well you can take a peek at the readme.txt, which has some explanations. See 'Pages' above) </p>
+
+<h1>readme.txt</h1>
+
+<p>compiling (only tested on ubuntu 9.10 /10.04, though other distro's or cygwin or OSX should work as well )
+dependencies:</p>
+
+<pre><code>     wxwidgets (version &gt; 2.8)
+     cairo  (with pdf support)
+     expat (in non-widechar mode)
+</code></pre>
+
+<p>If you have all the dependencies installed, just running make should do the trick. The executable will be called osmbrowse</p>
+
+<p>running</p>
+
+<p>./osmbrowser  this will create a mapfile.osm.cache for faster loading the next time. You can safely delete that if you're not interested in faster loading, when you specify a - as filename, osmbrowser wil read from stdin (only osm format atm, no cache files). This is useful if you have a alrge osm file and don't want to unzip it. for example bzcat netherlands.osm.bz2 | ./osmbrowser - this will create a file stdin.cache, which you camn use to open faster the next time ./osmbrowser stdin.cache</p>
+
+<p>interface explanation
+In the center is the main map display. Dragging the mouse pans the map, the scrollwheel zooms. The light read square is the currenly selected osm node. It's info is displayed on the right. If you click on the selected nod the selection is 'locked' and won't follow your mouse, you can then click on the info on the right to select a way on the map. Clicking on the map again unlocks the selection.</p>
+
+<p>On the left is the filter display. In the first box you can type a name for your ruleset. If you type a name, the set will be remembered for the next run of the app. The second box is for the draw rule, which determines what is going to be drawn. Below that you can add color rules which determine the color of what is drawn. Each way is first matched against the drawrule. If this matches then it is matched to the color rules from top to bottom and the first match is used to determine how to draw this way. If no colorrule matches it is drawn in light gray.</p>
+
+<p>rules
+A rule is a logical expression written down as a lisp s-expression.</p>
+
+<pre><code>RULE =
+    (tag "key")                        // true if the object matched has a tag with this key
+    | (tag "key" "value")              // true if the object matched has this exact tag
+    | (tag "key" "value" "value" ...)  // true if the object matched has a tag with this key and any of the values
+    | (or SUBRULES)                    // true if any of the SUBRULES is true
+    | (and SUBRULES)                   // true if all SUBRULES are true
+    | (not RULE)                       // true if RULE is false and vv
+</code></pre>
+
+<p>SUBRULES = RULE ... // one or more rules</p>
+
+<p>examples:</p>
+
+<p>match all naturals, waterways and boundaries</p>
+
+<p>(or
+  (tag "natural")
+  (tag "boundary")
+  (tag "waterway")
+ )</p>
+
+<p>match everything but buildings and landuse</p>
+
+<p>(not
+    (or
+        (tag "building")
+        (tag "landuse")
+    )
+ )</p>
+
+<p>match only forests and parks</p>
+
+<p>(or
+    (tag "landuse" "forest")
+    (tag "landuse" "woodland")
+    (tag "leisure" "park")
+ )</p>
+
+<p>You can (temporarily) disable subexpressions with a - direcly following the (
+example</p>
+
+<p>(or
+    (-tag "landuse" "forest")
+    (tag "landuse" "woodland")
+    (tag "leisure" "park")
+ )</p>
+
+<p>will ignore the tag "landuse" "forest" part as if the line was not there.</p>
+
+<p>There is a shorthand way to specify multiple values of a single tag</p>
+
+<p>(tag "landuse" "forest" "woodland" "industrial")</p>
+
+<p>is equivalent to</p>
+
+<p>(or
+    (tag "landuse" "forest")
+    (tag "landuse" "woodland")
+    (tag "landuse" "industrial")
+ )</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Osmbrowser maintained by <a href="https://github.com/wziard">wziard</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
