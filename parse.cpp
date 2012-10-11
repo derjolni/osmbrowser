@@ -14,7 +14,7 @@
 #endif
 
 
-#define FILEFORMAT_VERSION "OsmBrowserCachev1.2\004"
+#define FILEFORMAT_VERSION "OsmBrowserCachev1.3\004"
 
 static XML_Char const *get_attribute(const XML_Char *name, const XML_Char **attrs)
 {
@@ -455,8 +455,8 @@ void write_binary(OsmData *d, FILE *f)
 
 			for (unsigned i = 0; i < way->m_nodeRefs.GetCount(); i++)
 			{
-				IdObject *ref = dynamic_cast<IdObject *>(way->m_nodeRefs[i]);
-				fwrite(&(ref->m_id), sizeof(ref->m_id), 1, f);
+				unsigned id = way->m_nodeRefs[i];
+				fwrite(&(id), sizeof(id), 1, f);
 			}
 			
 		}
@@ -494,10 +494,9 @@ void write_binary(OsmData *d, FILE *f)
 
 			for (unsigned i = 0; i < rel->m_nodeRefs.GetCount(); i++)
 			{
-				IdObject *ref = dynamic_cast<IdObject *>(rel->m_nodeRefs[i]);
-				wxASSERT(ref);
+				unsigned id = rel->m_nodeRefs[i];
 
-				fwrite(&(ref->m_id), sizeof(ref->m_id), 1, f);
+				fwrite(&(id), sizeof(id), 1, f);
 			}
 			
 		}
@@ -523,10 +522,10 @@ void write_binary(OsmData *d, FILE *f)
 
 			for (unsigned i = 0; i < rel->m_wayRefs.GetCount(); i++)
 			{
-				IdObjectWithRole *ref = dynamic_cast<IdObjectWithRole *>(rel->m_wayRefs[i]);
-				wxASSERT(ref);
-				fwrite(&(ref->m_id), sizeof(ref->m_id), 1, f);
-				fwrite(&(ref->m_role), sizeof(ref->m_role), 1, f);
+				unsigned id = rel->m_wayRefs[i];
+				IdObjectWithRole::ROLE role = rel->m_roles[i];
+				fwrite(&(id), sizeof(id), 1, f);
+				fwrite(&(role), sizeof(role), 1, f);
 			}
 			
 		}

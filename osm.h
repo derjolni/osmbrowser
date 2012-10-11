@@ -459,7 +459,7 @@ class IdObjectWithRole
 	: public IdObject
 {
 	public:
-		enum ROLE
+		enum ROLE : char
 		{
 			OUTER,
 			INNER
@@ -476,7 +476,8 @@ class IdObjectWithRole
 };
 
 WX_DEFINE_ARRAY(IdObjectWithRole *, IdObjectWithRoleArray);
-WX_DEFINE_ARRAY_INT(IdObjectWithRole::ROLE, RolesArray);
+WX_DEFINE_ARRAY_CHAR(IdObjectWithRole::ROLE, RolesArray);
+WX_DEFINE_ARRAY_INT(unsigned, IdArray);
 
 WX_DECLARE_HASH_SET(unsigned, wxIntegerHash, wxIntegerEqual, WXIdSet);
 
@@ -675,8 +676,47 @@ class OsmWay
 
 	OsmNode *GetClosestNode(double lon, double lat, double *foundDistSquared);
 
-	unsigned FirstNodeId() { return m_nodeRefs.GetCount() ? m_nodeRefs[0]->m_id : 0 ; }
-	unsigned LastNodeId() { return m_nodeRefs.GetCount() ? m_nodeRefs.Last()->m_id : 0 ; }
+	unsigned FirstNodeId()
+	{
+		if (m_nodeRefs.GetCount())
+		{
+			return m_nodeRefs[0];
+		}
+
+		if (m_numResolvedNodes)
+		{
+			for (unsigned i = 0; i < m_numResolvedNodes; i++)
+			{
+				if (m_resolvedNodes[i])
+				{
+					return m_resolvedNodes[i]->m_id;
+				}
+			}
+		}
+
+		return 0;
+	}
+	unsigned LastNodeId()
+	{
+		if (m_nodeRefs.GetCount())
+		{
+			return m_nodeRefs.Last();
+		}
+
+		if (m_numResolvedNodes)
+		{
+			for (int i = m_numResolvedNodes-1; i >=0 ; i--)
+			{
+				if (m_resolvedNodes[i])
+				{
+					return m_resolvedNodes[i]->m_id;
+				}
+			}
+		}
+
+		return 0;
+
+	}
 
 	bool ContainsNode(OsmNode const *node) const
 	{
@@ -691,10 +731,10 @@ class OsmWay
 
 	void AddNodeRef(unsigned id)
 	{
-		m_nodeRefs.Add(new IdObject(id));
+		m_nodeRefs.Add(id);
 	}
 
-	IdObjectArraySmall m_nodeRefs;
+	IdArray m_nodeRefs;
 
 	void Resolve(IdObjectStore *store);
 	// these are only valid after calling resolve
@@ -734,7 +774,6 @@ class OsmRelation
 	
 	~OsmRelation()
 	{
-		WX_CLEAR_ARRAY(m_wayRefs);
 		m_wayRefs.Clear();
 
 		if (m_resolvedWays)
@@ -743,17 +782,18 @@ class OsmRelation
 		}
 	}
 	
-	IdObjectWithRoleArray m_wayRefs;
+	IdArray m_wayRefs;
 
 	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role)
 	{
-		m_wayRefs.Add(new IdObjectWithRole(id, role));
+		m_wayRefs.Add(id);
+		m_roles.Add(role);
 	}
 	
 	void Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore);
 
 	OsmWay **m_resolvedWays;
-	RolesArray m_roles; // filled by Resolve
+	RolesArray m_roles;
 	unsigned m_numResolvedWays;
 	
 };

@@ -430,8 +430,8 @@ void OsmWay::Resolve(IdObjectStore *store)
 	bool resolvedAll = true;
 	for (unsigned i = 0; i < size; i++)
 	{
-		IdObject *o = m_nodeRefs[i];
-		m_resolvedNodes[i] = (OsmNode *)store->GetObject(o->m_id);
+		unsigned id = m_nodeRefs[i];
+		m_resolvedNodes[i] = (OsmNode *)store->GetObject(id);
 
 		if (!m_resolvedNodes[i])
 			resolvedAll = false;
@@ -467,9 +467,8 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 	bool resolvedAll = true;
 	for (unsigned i = 0; i < size; i++)
 	{
-		IdObjectWithRole *o = m_wayRefs[i];
-		m_resolvedWays[i] = (OsmWay *)wayStore->GetObject(o->m_id);
-		m_roles.Add(o->m_role);
+		unsigned id = m_wayRefs[i];
+		m_resolvedWays[i] = (OsmWay *)wayStore->GetObject(id);
 
 		if (!m_resolvedWays[i])
 		{
@@ -484,7 +483,6 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 
 	if (resolvedAll)
 	{
-		WX_CLEAR_ARRAY(m_wayRefs);
 		m_wayRefs.Clear();
 	}
 

@@ -19,7 +19,7 @@ CC=gcc
 CXX=g++
 LD=g++
 
-CFLAGS = -Wall -Werror -O3 -ggdb -D_FILE_OFFSET_BITS=64
+CFLAGS = -Wall -Werror -O3 -ggdb -D_FILE_OFFSET_BITS=64 -std=c++0x
 CXXFLAGS = $(CFLAGS) `wx-config --cxxflags` `pkg-config cairo --cflags`
 LDFLAGS = -ggdb
 
