@@ -10,9 +10,14 @@ class SlabArray
 		SlabArray();
 		~SlabArray();
 		void Add(T *item);
-		T *Get(unsigned index) { return m_slabs[index >> m_slabShift][index & m_slabMask]; }
-		unsigned GetCount() { return m_num; }
+		unsigned GetCount() const { return m_num; }
 		void Clear();
+		T *Get(unsigned index) { wxASSERT(m_num && m_num > index); return m_slabs[index >> m_slabShift][index & m_slabMask]; }
+		T const *Get(unsigned index) const{ wxASSERT(m_num && m_num > index); return m_slabs[index >> m_slabShift][index & m_slabMask]; }
+		T const *Last() const { return Get(m_num - 1); }
+		T *Last() { return Get(m_num - 1); }
+		T *operator[](unsigned index) { return Get(index); }
+		T const *operator[](unsigned index) const { return Get(index); }
 
 	private:
 		unsigned m_slabSize;
