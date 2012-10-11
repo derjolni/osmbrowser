@@ -65,7 +65,8 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 		}
 		else
 		{
-			wxPrintf(wxT("Opening file ") + fileName + wxT("\n"));
+			fputs("Opening file ", stdout);
+ 			puts(fileName.char_str());
 			infile = fopen(fileName.mb_str(wxConvUTF8), "r");
 		}
 
