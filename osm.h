@@ -453,7 +453,7 @@ int CompareIdObjectPointers(IdObject *o1, IdObject *o2);
 WX_DEFINE_ARRAY(IdObject *, IdObjectArraySmall);
 WX_DEFINE_SORTED_ARRAY(IdObject *, SortedIdObjectArray);
 
-typedef SlabArray<IdObject, 16>  IdObjectArrayLarge;
+typedef SlabArray<IdObject *, 16>  IdObjectArrayLarge;
 
 class IdObjectWithRole
 	: public IdObject

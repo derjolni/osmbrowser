@@ -10,21 +10,18 @@ class SlabArray
 	public:
 		SlabArray();
 		~SlabArray();
-		void Add(T *item);
+		void Add(T const &item);
 		unsigned GetCount() const { return m_num; }
 		void Clear();
-		T *Get(unsigned index) { wxASSERT(m_num && m_num > index); return m_slabs[index >> m_slabShift][index & m_slabMask]; }
-		T const *Get(unsigned index) const{ wxASSERT(m_num && m_num > index); return m_slabs[index >> m_slabShift][index & m_slabMask]; }
-		T const *Last() const { return Get(m_num - 1); }
-		T *Last() { return Get(m_num - 1); }
-		T *operator[](unsigned index) { return Get(index); }
-		T const *operator[](unsigned index) const { return Get(index); }
+		T const &Get(unsigned index) const { wxASSERT(m_num && m_num > index); return m_slabs[index >> m_slabShift][index & m_slabMask]; }
+		T const &Last() const { return Get(m_num - 1); }
+		T const &operator[](unsigned index) const { return Get(index); }
 
 	private:
 		unsigned m_slabSize;
 		unsigned m_slabShift;
 		unsigned m_slabMask;
-		T ***m_slabs;
+		T **m_slabs;
 
 		unsigned m_num;
 		unsigned m_maxNumSlabs;
@@ -63,7 +60,7 @@ SlabArray<T, SlabSize>::~SlabArray()
 }
 
 template<typename T, size_t SlabSize>
-void SlabArray<T, SlabSize>::Add(T *item)
+void SlabArray<T, SlabSize>::Add(T const &item)
 {
 	unsigned slab = m_num >> m_slabShift;
 	if (slab >= m_maxNumSlabs)
@@ -73,7 +70,7 @@ void SlabArray<T, SlabSize>::Add(T *item)
 
 	if (!m_slabs[slab])
 	{
-		m_slabs[slab] = new T*[m_slabSize];
+		m_slabs[slab] = new T[m_slabSize];
 	}
 
 	m_slabs[slab][m_num & m_slabMask] = item;
@@ -98,7 +95,7 @@ template<typename T, size_t SlabSize>
 void SlabArray<T, SlabSize>::GrowMaxNumSlabs()
 {
 	unsigned newNumSlabs = m_maxNumSlabs ? 2 * m_maxNumSlabs : 1;
-	T ***newSlabs =  new T**[newNumSlabs];
+	T **newSlabs =  new T*[newNumSlabs];
 
 	for (unsigned i = 0; i < m_maxNumSlabs; i++)
 	{
