@@ -218,6 +218,8 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 				OsmWay *w = r->m_resolvedWays[i];
 				a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
 			}
+			job->m_renderer->SetLineColor(c.Red(), c.Green(), c.Blue());
+			job->m_renderer->SetFillColor(c.Red(), c.Green(), c.Blue());
 			a.Render(job->m_renderer, job->m_curLayer <0 ? layer : 0);
 		}
 		job->m_renderedRelationIds.Add(r->m_id);
