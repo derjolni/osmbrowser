@@ -96,13 +96,32 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		
 		if (t->OverLaps(job->m_bb))
 		{
-			for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+			switch(job->m_renderState)
 			{
-				if (!(job->m_renderedIds.Has(w->m_way->m_id)))
+				case RenderJob::RELATIONS:
+				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 				{
-					RenderWay(job, w->m_way);
-				}
-			}	// for way
+					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
+					{
+						if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
+						{
+							RenderRelation(job, rl->m_relation);
+						}
+					}
+				}	// for way
+				break;
+				case RenderJob::WAYS:
+				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+				{
+					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
+					{
+						RenderWay(job, w->m_way);
+					}
+				}	// for way
+				break;
+				case RenderJob::NODES:
+				break;
+			}
 		}  // if overlaps
 
 		//not needed anymore for cairo renderer. move to mustcancel callback?
@@ -119,13 +138,24 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		mustCancel = job->MustCancel(progress);
 	}	 // while curTile
 
-	if (!job->m_curTile && job->m_curLayer >= 0)
+	if (!job->m_curTile)
 	{
-		job->m_curLayer++;
-		if (job->m_curLayer < NUMLAYERS)
-			job->m_curTile = job->m_visibleTiles;
-	}
+		job->m_renderState = static_cast<RenderJob::RENDERSTATE>(job->m_renderState + 1);
 
+		if (job->m_renderState <= RenderJob::NODES)
+		{
+					job->m_curTile = job->m_visibleTiles;
+		}
+		else if (job->m_curLayer >= 0)
+		{
+			job->m_renderState = RenderJob::RELATIONS;
+			job->m_curLayer++;
+			if (job->m_curLayer < NUMLAYERS)
+			{
+				job->m_curTile = job->m_visibleTiles;
+			}
+		}
+	}
 	DrawOverlay(job->m_renderer, true);
 
 	if (!job->m_curTile)
@@ -174,8 +204,10 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 		{
 			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
 			{
-				RenderWay(job->m_renderer, r->m_resolvedWays[i], c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
-				job->m_renderedIds.Add(r->m_resolvedWays[i]->m_id);
+				if (r->m_resolvedWays[i])
+				{
+					RenderWay(job->m_renderer, r->m_resolvedWays[i], c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
+				}
 			}
 		}
 		else
@@ -185,10 +217,10 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 			{
 				OsmWay *w = r->m_resolvedWays[i];
 				a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
-				job->m_renderedIds.Add(w->m_id);
 			}
 			a.Render(job->m_renderer, job->m_curLayer <0 ? layer : 0);
 		}
+		job->m_renderedRelationIds.Add(r->m_id);
 	}
 }
 
@@ -224,7 +256,7 @@ void TileDrawer::RenderWay(RenderJob *job, OsmWay *w)
 		if (job->m_curLayer < 0 || job->m_curLayer == layer)
 		{
 			RenderWay(job->m_renderer, w, c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
-			job->m_renderedIds.Add(w->m_id);
+			job->m_renderedWayIds.Add(w->m_id);
 		}
 	}
 }

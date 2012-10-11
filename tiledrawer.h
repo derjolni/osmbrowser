@@ -252,6 +252,7 @@ class RenderJob
 			m_numTilesToRender = m_numTilesRendered = 0;
 			m_finished = false;
 			m_renderer = renderer;
+			m_renderState = RELATIONS;
 		}
 		
 		virtual ~RenderJob() { }
@@ -260,16 +261,24 @@ class RenderJob
 		virtual bool MustCancel(double progress) = 0;
 
 		bool Finished() { return m_finished; }
+		enum RENDERSTATE
+		{
+			RELATIONS,
+			WAYS,
+			NODES
+		};
 
 	private:
 		friend class TileDrawer;
 		TileList *m_visibleTiles, *m_curTile;
 		int m_numTilesToRender, m_numTilesRendered;
+		RENDERSTATE m_renderState;
 		int m_curLayer;
 		DRect m_bb;
 		bool m_finished;
 //		TileSpans m_renderedTiles;
-		IdSet m_renderedIds;
+		IdSet m_renderedWayIds;
+		IdSet m_renderedRelationIds;
 		Renderer *m_renderer;
 
 };
