@@ -89,7 +89,7 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	while (job->m_curTile && !mustCancel && (count++ < maxNumToRender))
 	{
 		OsmTile *t = job->m_curTile->m_tile;
-		if (job->m_curLayer < 0)
+		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
 		{
 			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);
 		}
