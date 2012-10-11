@@ -290,11 +290,11 @@ class TileDrawer
 			delete [] m_tileArray;
 		}
 
-		void AddWays(IdObjectArray const &ways)
+		void AddWays(IdObjectArrayLarge *ways)
 		{
-			for (unsigned w  = 0; w < ways.GetCount(); w++)
+			for (unsigned w  = 0; w < ways->GetCount(); w++)
 			{
-				OsmWay *way = dynamic_cast<OsmWay *>(ways[w]);
+				OsmWay  *way = dynamic_cast<OsmWay *>(ways->Get(w));
 				wxASSERT(way);
 				AddWay(way);
 				if (!(w % 10000))

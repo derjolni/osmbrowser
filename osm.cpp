@@ -439,7 +439,6 @@ void OsmWay::Resolve(IdObjectStore *store)
 
 	if (resolvedAll)
 	{
-		WX_CLEAR_ARRAY(m_nodeRefs);
 		m_nodeRefs.Clear();
 	}
 
@@ -517,7 +516,6 @@ IdObjectStore::~IdObjectStore()
 
 	delete [] m_locator;
 
-	WX_CLEAR_ARRAY(m_objects);
 	m_objects.Clear();
 }
 

@@ -37,6 +37,7 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 	wxString binFile = fileName;
 	m_renderer = NULL;
 	m_renderJob = NULL;
+	m_data = NULL;
 
 	binFile.Append(wxT(".cache"));
 
@@ -112,7 +113,7 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 
 	m_tileDrawer = new TileDrawer(m_data->m_minlon, m_data->m_minlat, m_data->m_maxlon, m_data->m_maxlat, .05, .04);
 
-	m_tileDrawer->AddWays(m_data->m_ways.m_objects);
+	m_tileDrawer->AddWays(&(m_data->m_ways.m_objects));
 
 	m_tileDrawer->SetSelectionColor(255,100,100);
 

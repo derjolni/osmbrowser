@@ -13,7 +13,7 @@
 #include <wx/hashset.h>
 #include <wx/arrstr.h>
 #include <wx/dynarray.h>
-
+#include "slabarray.h"
 #define DISTSQUARED(x1, y1, x2, y2)  (((x1) - (x2)) * ((x1) - (x2)) + ((y1) - (y2)) * ((y1) - (y2)))
 
 class DRect
@@ -450,8 +450,10 @@ class IdObject
 
 int CompareIdObjectPointers(IdObject *o1, IdObject *o2);
 
+WX_DEFINE_ARRAY(IdObject *, IdObjectArraySmall);
 WX_DEFINE_SORTED_ARRAY(IdObject *, SortedIdObjectArray);
-WX_DEFINE_ARRAY(IdObject *, IdObjectArray);
+
+typedef SlabArray<IdObject, 16>  IdObjectArrayLarge;
 
 class IdObjectWithRole
 	: public IdObject
@@ -540,7 +542,7 @@ class IdObjectStore
 		}
 
 		ObjectList **m_locator;
-		IdObjectArray m_objects;
+		IdObjectArrayLarge m_objects;
 		int m_size;
 		unsigned m_mask;
 		wxArrayInt m_listSizes;
@@ -646,7 +648,6 @@ class OsmWay
 
 	~OsmWay()
 	{
-		WX_CLEAR_ARRAY(m_nodeRefs);
 		m_nodeRefs.Clear();
 
 		if (m_resolvedNodes)
@@ -693,7 +694,7 @@ class OsmWay
 		m_nodeRefs.Add(new IdObject(id));
 	}
 
-	IdObjectArray m_nodeRefs;
+	IdObjectArraySmall m_nodeRefs;
 
 	void Resolve(IdObjectStore *store);
 	// these are only valid after calling resolve
