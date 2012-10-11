@@ -61,8 +61,36 @@ class Type
 		{
 			NODE,
 			WAY,
-			RELATION
+			RELATION,
+			INVALID
 		};
+
+		static TYPE GetType(char const *s)
+		{
+			if (!s)
+			{
+				return INVALID;
+			}
+
+			static char const *typeNames[] =
+			{
+				"node",
+				"way",
+				"relation"
+			};
+
+			for (unsigned i = 0; i < sizeof(typeNames)/ sizeof(char const *); i++)
+			{
+				if (!strcmp(s, typeNames[i]))
+				{
+					return (Type::TYPE)i;
+				}
+			}
+
+			return Type::INVALID;
+		}
+
+
 		Type(TYPE type)
 		{
 			m_type = type;
@@ -82,6 +110,9 @@ class Type
 				break;
 				case WAY:
 					return ((dynamic_cast<OsmWay *>(o) != NULL)  && (dynamic_cast<OsmRelation *>(o) == NULL)) ? S_TRUE : S_FALSE;
+				break;
+				case INVALID:
+					return S_INVALID;
 				break;
 			}
 

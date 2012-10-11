@@ -178,6 +178,19 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 		case OR:
 			ret = new Or;
 		break;
+		case TYPE:
+		{
+			Type::TYPE t = Type::GetType(ParseString(f, &p,logError, maxLogErrorSize, errorPos));
+
+			if (t == Type::INVALID)
+			{
+				snprintf(logError, maxLogErrorSize, "invalid type");
+				goto error;
+			}
+
+			ret = new Type(t);
+		}
+		break;
 		case TAG:
 		{
 			char const *key = ParseString(f, &p,logError, maxLogErrorSize, errorPos);
