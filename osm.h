@@ -405,12 +405,12 @@ class OsmTag
 
 	TagIndex Index() { return m_index; }
 
-	char const *GetKey()
+	char const *GetKey() const
 	{
 		return m_tagStore->GetKey(m_index);
 	}
 
-	char const *GetValue()
+	char const *GetValue() const
 	{
 		return m_tagStore->GetValue(m_index);
 	}
@@ -576,7 +576,7 @@ class IdObjectWithTags
 			m_tags = new OsmTag(key, value, m_tags);
 		}
 
-		bool HasTag(OsmTag const &tag)
+		bool HasTag(OsmTag const &tag) const
 		{
 			return m_tags ? m_tags->HasTag(tag) : false;
 		}
