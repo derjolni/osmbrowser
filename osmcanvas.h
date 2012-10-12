@@ -78,6 +78,10 @@ class OsmCanvas
 		void OnMouseMove(wxMouseEvent &evt);
 		void OnTimer(wxTimerEvent &evt)
 		{
+			if (m_busy)
+			{
+				return;
+			}
 			if (m_restart || !m_done)
 			{
 				Render();
@@ -102,6 +106,7 @@ class OsmCanvas
 		bool m_done;
 		bool m_restart;
 		bool m_locked;
+		bool m_busy;
 		wxTimer m_timer;
 
 		Renderer *m_renderer;

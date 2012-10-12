@@ -38,6 +38,7 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 	m_renderer = NULL;
 	m_renderJob = NULL;
 	m_data = NULL;
+	m_busy = false;
 
 	binFile.Append(wxT(".cache"));
 
@@ -112,18 +113,18 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 
 	m_lastX = m_lastY = 0;
 
-	m_tileDrawer = new TileDrawer(m_data->m_minlon, m_data->m_minlat, m_data->m_maxlon, m_data->m_maxlat, .05, .04);
+	m_tileDrawer = new TileDrawer(m_data->m_minlon, m_data->m_minlat, m_data->m_maxlon, m_data->m_maxlat, .2, .16);
 
 	m_tileDrawer->AddWays(&(m_data->m_ways.m_objects));
 
 	m_tileDrawer->SetSelectionColor(255,100,100);
 
-	m_timer.Start(100, true);
+	m_timer.Start(10, true);
 }
 
 void OsmCanvas::Render(bool force)
 {
-
+	m_busy = true;
 	if (force)
 	{
 		m_restart = true;
@@ -132,16 +133,19 @@ void OsmCanvas::Render(bool force)
 	if (!(m_backBuffer.IsOk()))
 	{
 		m_restart = true;
+		m_busy = false;
 		return;
 	}
 
 	if (!IsShownOnScreen() || m_locked)
 	{
+		m_busy = false;
 		return;
 	}
 	
 	if (!m_restart && m_done)
 	{
+		m_busy = false;
 		return;
 	}
 
@@ -160,7 +164,7 @@ void OsmCanvas::Render(bool force)
 		m_renderJob = new CanvasJob(m_app, m_mainFrame, m_renderer);
 	}
 
-	m_done = m_tileDrawer->RenderTiles(m_renderJob, 100);
+	m_done = m_tileDrawer->RenderTiles(m_renderJob, 1000);
 
 	m_tileDrawer->DrawOverlay(m_renderer);
 	
@@ -172,6 +176,7 @@ void OsmCanvas::Render(bool force)
 		m_mainFrame->SetProgress(-1);
 	}
 	
+	m_busy = false;
 	return;
 }
 
