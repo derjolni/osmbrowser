@@ -129,7 +129,7 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
 		job->m_numTilesRendered++;
 
-		double progress = static_cast<double>(job->m_numTilesRendered)/ job->m_numTilesToRender;
+		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender*3);
 		if (job->m_curLayer >= 0)
 		{
 			progress /= NUMLAYERS;
