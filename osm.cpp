@@ -7,6 +7,7 @@
 #include <string.h>
 
 
+//compare fuinction for sorted array
 int CompareIdObjectPointers(IdObject *o1, IdObject *o2)
 {
 	if (o1->m_id > o2->m_id)
