@@ -22,6 +22,9 @@ class Renderer
 		enum TYPE
 		{
 			R_POLYGON,
+			R_MULTIPOLYGON,
+			R_OUTER,
+			R_INNER,
 			R_LINE
 		};
 		virtual void Begin(Renderer::TYPE type, int layer) = 0;
@@ -49,6 +52,16 @@ class Renderer
 			End();
 		}
 
+		void SetLineColorf(float r, float g, float b, float a)
+		{
+			SetLineColor((int)(r * 255), (int)(g * 255),(int)(b * 255),(int)(a * 255));
+		}
+
+		void SetFillColorf(float r, float g, float b, float a)
+		{
+			SetFillColor((int)(r * 255), (int)(g * 255),(int)(b * 255),(int)(a * 255));
+		}
+
 		virtual void SetLineColor(int r, int g, int b, int a = 0) = 0;
 		virtual void SetFillColor(int r, int g, int b, int a = 0) = 0;
 		virtual void SetLineWidth(int width) = 0;
@@ -73,6 +86,16 @@ class Renderer
 			return ret;
 		}
 
+		enum POINTADDMODE
+		{
+			NORMAL,
+			REPEATFIRST,
+			SKIPFIRST,
+			ONLYFIRST
+		};
+
+		void AddWayPoints(OsmWay *w, bool reverse, POINTADDMODE mode); // skipFirst will skip first *drawn* . when reverse==true this is the last in the Way
+
 	protected:
 		double m_offX, m_offY, m_scaleX, m_scaleY;
 		double m_outputWidth, m_outputHeight;
@@ -90,6 +113,7 @@ class RendererSimple
 			m_points = new RendererSimple::Point[m_maxPoints];
 			m_shifts = new RendererSimple::Point[m_maxPoints];
 			m_numPoints = 0;
+			m_multiPolygonMode = false;
 		}
 
 		~RendererSimple()
@@ -102,6 +126,10 @@ class RendererSimple
 			m_numPoints = 0;
 			m_type = type;
 			m_curLayer = layer;
+			if (type == Renderer::R_MULTIPOLYGON)
+			{
+				StartMultiPolygon();
+			}
 		}
 
 		void AddPoint(double x, double y, double xs = 0, double ys = 0)
@@ -133,13 +161,31 @@ class RendererSimple
 				case Renderer::R_POLYGON:
 				DrawPolygon();
 				break;
+				case Renderer::R_OUTER:
+				assert(m_multiPolygonMode);
+				DrawOuterPolygon();
+				m_type = Renderer::R_MULTIPOLYGON;
+				break;
+				case Renderer::R_INNER:
+				DrawInnerPolygon();
+				m_type = Renderer::R_MULTIPOLYGON;
+				break;
+				case Renderer::R_MULTIPOLYGON:
+				 m_multiPolygonMode = false;
+				 EndMultiPolygon();;
+				break;
 			};
 		}
 
 	protected:
 		virtual void DrawPolygon() = 0;
 		virtual void DrawLine() = 0;
+		virtual void DrawOuterPolygon() = 0;
+		virtual void DrawInnerPolygon() = 0;
+		virtual void StartMultiPolygon() = 0;
+		virtual void EndMultiPolygon() = 0;
 	private:
+		bool m_multiPolygonMode;
 		struct Point
 		{
 			double x, y;

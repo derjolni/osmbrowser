@@ -3,6 +3,7 @@
 // osmbrowser is licenced under the gpl v3
 #include "tiledrawer.h"
 #include "rulecontrol.h"
+#include "polygonassembler.h"
 
 TileWay::TileWay(OsmWay *way, TileWay *next)
 	: ListObject(next)
@@ -33,8 +34,6 @@ TileWay *OsmTile::GetWaysContainingNode(OsmNode *node)
 
 TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat, double dLon, double dLat)
 {
-	m_tiles = NULL;
-
 	m_selection = NULL;
 	m_selectionColor = wxColour(255,0,0);
 	m_selectedWay = NULL;
@@ -58,8 +57,8 @@ TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat
 		m_tileArray[x] = new OsmTile *[m_yNum];
 		for (unsigned y = 0; y < m_yNum; y++)
 		{
-			m_tiles = new OsmTile(id++, m_minLon + x * dLon , m_minLat + y * dLat, m_minLon + (x + 1) * dLon, m_minLat + (y+1) * dLat, m_tiles);
-			m_tileArray[x][y] = m_tiles;
+			m_tiles.Add(new OsmTile(id++, m_minLon + x * dLon , m_minLat + y * dLat, m_minLon + (x + 1) * dLon, m_minLat + (y+1) * dLat));
+			m_tileArray[x][y] = m_tiles.Last();
 		}
 	}
  }
@@ -90,20 +89,39 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	while (job->m_curTile && !mustCancel && (count++ < maxNumToRender))
 	{
 		OsmTile *t = job->m_curTile->m_tile;
-		if (job->m_curLayer < 0)
+		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
 		{
 			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);
 		}
 		
 		if (t->OverLaps(job->m_bb))
 		{
-			for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+			switch(job->m_renderState)
 			{
-				if (!(job->m_renderedIds.Has(w->m_way->m_id)))
+				case RenderJob::RELATIONS:
+				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 				{
-					RenderWay(job, w->m_way);
-				}
-			}	// for way
+					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
+					{
+						if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
+						{
+							RenderRelation(job, rl->m_relation);
+						}
+					}
+				}	// for way
+				break;
+				case RenderJob::WAYS:
+				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+				{
+					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
+					{
+						RenderWay(job, w->m_way);
+					}
+				}	// for way
+				break;
+				case RenderJob::NODES:
+				break;
+			}
 		}  // if overlaps
 
 		//not needed anymore for cairo renderer. move to mustcancel callback?
@@ -111,7 +129,7 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
 		job->m_numTilesRendered++;
 
-		double progress = static_cast<double>(job->m_numTilesRendered)/ job->m_numTilesToRender;
+		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender*3);
 		if (job->m_curLayer >= 0)
 		{
 			progress /= NUMLAYERS;
@@ -120,13 +138,24 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		mustCancel = job->MustCancel(progress);
 	}	 // while curTile
 
-	if (!job->m_curTile && job->m_curLayer >= 0)
+	if (!job->m_curTile)
 	{
-		job->m_curLayer++;
-		if (job->m_curLayer < NUMLAYERS)
-			job->m_curTile = job->m_visibleTiles;
-	}
+		job->m_renderState = static_cast<RenderJob::RENDERSTATE>(job->m_renderState + 1);
 
+		if (job->m_renderState <= RenderJob::NODES)
+		{
+					job->m_curTile = job->m_visibleTiles;
+		}
+		else if (job->m_curLayer >= 0)
+		{
+			job->m_renderState = RenderJob::RELATIONS;
+			job->m_curLayer++;
+			if (job->m_curLayer < NUMLAYERS)
+			{
+				job->m_curTile = job->m_visibleTiles;
+			}
+		}
+	}
 	DrawOverlay(job->m_renderer, true);
 
 	if (!job->m_curTile)
@@ -141,6 +170,65 @@ void TileDrawer::Rect(Renderer *renderer, wxString const &text, double lon1, dou
 {
 	renderer->Rect(lon1, lat1, lon2 - lon1, lat2 - lat1, border, r, g, b, a, false, layer);
 	renderer->DrawCenteredText(text.mb_str(wxConvUTF8), (lon1 + lon2)/2, (lat1 + lat2)/2, 0, r, g, b, a,  layer);
+}
+
+
+void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
+{
+
+	if (m_drawRule && (m_drawRule->Evaluate(r) == LogicalExpression::S_FALSE))
+	{
+		return;
+	}
+
+	wxColour c = wxColour(150,150,150);
+	bool poly = false;
+	int layer = 1;
+	if (m_colorRules)
+	{
+		for (int i = 0; i < m_colorRules->m_num; i++)
+		{
+			if (m_colorRules->m_rules[i]->Evaluate(r) == LogicalExpression::S_TRUE)
+			{
+				c = m_colorRules->m_pickers[i]->GetColour();
+				poly = m_colorRules->m_checkBoxes[i]->IsChecked();
+				layer = m_colorRules->m_layers[i]->GetSelection();
+				break; // stop after first match
+			}
+		}
+	}
+
+	if (job->m_curLayer < 0 || job->m_curLayer == layer)
+	{
+		if (!poly)
+		{
+			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
+			{
+				if (r->m_resolvedWays[i])
+				{
+					RenderWay(job->m_renderer, r->m_resolvedWays[i], c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
+					job->m_renderedWayIds.Add(r->m_resolvedWays[i]->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+				}
+			}
+		}
+		else
+		{
+			PolygonAssembler a;
+			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
+			{
+				OsmWay *w = r->m_resolvedWays[i];
+				if (w)
+				{
+					a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
+					job->m_renderedWayIds.Add(w->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+				}
+			}
+			job->m_renderer->SetLineColor(c.Red(), c.Green(), c.Blue());
+			job->m_renderer->SetFillColor(c.Red(), c.Green(), c.Blue());
+			a.Render(job->m_renderer, job->m_curLayer <0 ? layer : 0);
+		}
+		job->m_renderedRelationIds.Add(r->m_id);
+	}
 }
 
 // render using default colours. should plug in rule engine here
@@ -175,7 +263,7 @@ void TileDrawer::RenderWay(RenderJob *job, OsmWay *w)
 		if (job->m_curLayer < 0 || job->m_curLayer == layer)
 		{
 			RenderWay(job->m_renderer, w, c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
-			job->m_renderedIds.Add(w->m_id);
+			job->m_renderedWayIds.Add(w->m_id);
 		}
 	}
 }

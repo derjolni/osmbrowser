@@ -7,7 +7,7 @@
 #      - make clean will delete the object files and the executable
 #      - make veryclean will delete all generated files (also core files and *~ and *.bkp)
 
-CPP_OBJECTS_BARE= wxmain wxcanvas osmcanvas osm parse s_expr rulecontrol frame renderer tiledrawer cairorenderer info wxcairo utils
+CPP_OBJECTS_BARE= wxmain wxcanvas osmcanvas osm parse s_expr rulecontrol frame renderer tiledrawer cairorenderer info wxcairo utils polygonassembler slabarray
 
 C_OBJECTS_BARE =
 
@@ -19,9 +19,9 @@ CC=gcc
 CXX=g++
 LD=g++
 
-CFLAGS = -Wall -Werror -O3 -g -D_FILE_OFFSET_BITS=64
+CFLAGS = -Wall -Werror -O3 -ggdb -D_FILE_OFFSET_BITS=64 -std=c++0x
 CXXFLAGS = $(CFLAGS) `wx-config --cxxflags` `pkg-config cairo --cflags`
-LDFLAGS = -g
+LDFLAGS = -ggdb
 
 RM=rm -f
 RMDIR=rm -rf

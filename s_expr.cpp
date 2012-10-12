@@ -9,7 +9,7 @@ ExpressionParser::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int 
 {
 	char const *operators[] =
 	{
-		"not", "and", "or", "tag"
+		"not", "and", "or", "tag", "type"
 	};
 
 	if (s[*pos] == '-')
@@ -177,6 +177,19 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 		break;
 		case OR:
 			ret = new Or;
+		break;
+		case TYPE:
+		{
+			Type::TYPE t = Type::GetType(ParseString(f, &p,logError, maxLogErrorSize, errorPos));
+
+			if (t == Type::INVALID)
+			{
+				snprintf(logError, maxLogErrorSize, "invalid type");
+				goto error;
+			}
+
+			ret = new Type(t);
+		}
 		break;
 		case TAG:
 		{

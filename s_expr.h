@@ -7,7 +7,8 @@
 #include <ctype.h>
 /*
   e =
-  (tag key)                      true if a tag with this key exists
+  (type relation|way|node)
+  | (tag key)                      true if a tag with this key exists
   | (tag key value)              true if the key/value pair exists
   | (and e e e e e ...)          true if all e's true
   | (or e e e e ...)             true if any e true
@@ -50,6 +51,77 @@ class LogicalExpression
 		bool m_disabled;
 		LogicalExpression *m_children;
 		virtual STATE GetValue(IdObjectWithTags *o) = 0;
+};
+
+class Type
+	: public LogicalExpression
+{
+	public:
+		enum TYPE
+		{
+			NODE,
+			WAY,
+			RELATION,
+			INVALID
+		};
+
+		static TYPE GetType(char const *s)
+		{
+			if (!s)
+			{
+				return INVALID;
+			}
+
+			static char const *typeNames[] =
+			{
+				"node",
+				"way",
+				"relation"
+			};
+
+			for (unsigned i = 0; i < sizeof(typeNames)/ sizeof(char const *); i++)
+			{
+				if (!strcmp(s, typeNames[i]))
+				{
+					return (Type::TYPE)i;
+				}
+			}
+
+			return Type::INVALID;
+		}
+
+
+		Type(TYPE type)
+		{
+			m_type = type;
+		}
+		virtual STATE GetValue(IdObjectWithTags *o)
+		{
+			if (m_disabled)
+				return S_IGNORE;
+
+			switch(m_type)
+			{
+				case NODE:
+					return dynamic_cast<OsmNode *>(o) == NULL ? S_FALSE : S_TRUE;
+				break;
+				case RELATION:
+					return dynamic_cast<OsmRelation *>(o) == NULL ? S_FALSE : S_TRUE;
+				break;
+				case WAY:
+					return ((dynamic_cast<OsmWay *>(o) != NULL)  && (dynamic_cast<OsmRelation *>(o) == NULL)) ? S_TRUE : S_FALSE;
+				break;
+				case INVALID:
+					return S_INVALID;
+				break;
+			}
+
+			return S_INVALID;
+		}
+
+	private:
+		TYPE m_type;
+		Type() {} // don't use plz
 };
 
 class Not
@@ -199,6 +271,7 @@ class ExpressionParser
 			AND,
 			OR,
 			TAG,
+			TYPE,
 			OFF,
 			INVALID
 		};

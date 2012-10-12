@@ -12,7 +12,8 @@
 #include <wx/hashmap.h>
 #include <wx/hashset.h>
 #include <wx/arrstr.h>
-
+#include <wx/dynarray.h>
+#include "slabarray.h"
 #define DISTSQUARED(x1, y1, x2, y2)  (((x1) - (x2)) * ((x1) - (x2)) + ((y1) - (y2)) * ((y1) - (y2)))
 
 class DRect
@@ -404,12 +405,12 @@ class OsmTag
 
 	TagIndex Index() { return m_index; }
 
-	char const *GetKey()
+	char const *GetKey() const
 	{
 		return m_tagStore->GetKey(m_index);
 	}
 
-	char const *GetValue()
+	char const *GetValue() const
 	{
 		return m_tagStore->GetValue(m_index);
 	}
@@ -433,17 +434,50 @@ class OsmTag
 };
 
 class IdObject
-	: public ListObject
 {
 	public:
-		IdObject(unsigned id = 0, IdObject *next = NULL)
-			: ListObject(next)
+		IdObject(unsigned id = 0)
 		{
 			m_id = id;
 		}
-			
+
+		virtual ~IdObject()
+		{
+		}
+
 		unsigned m_id;
 };
+
+int CompareIdObjectPointers(IdObject *o1, IdObject *o2);
+
+WX_DEFINE_ARRAY(IdObject *, IdObjectArraySmall);
+WX_DEFINE_SORTED_ARRAY(IdObject *, SortedIdObjectArray);
+
+typedef SlabArray<IdObject *, 16>  IdObjectArrayLarge;
+
+class IdObjectWithRole
+	: public IdObject
+{
+	public:
+		enum ROLE : char
+		{
+			OUTER,
+			INNER
+		};
+
+		IdObjectWithRole(unsigned id, ROLE role)
+			: IdObject(id)
+		{
+			m_role = role;
+		}
+
+		ROLE m_role;
+
+};
+
+WX_DEFINE_ARRAY(IdObjectWithRole *, IdObjectWithRoleArray);
+WX_DEFINE_ARRAY_CHAR(IdObjectWithRole::ROLE, RolesArray);
+WX_DEFINE_ARRAY_INT(unsigned, IdArray);
 
 WX_DECLARE_HASH_SET(unsigned, wxIntegerHash, wxIntegerEqual, WXIdSet);
 
@@ -470,23 +504,19 @@ class IdObjectStore
 		class ObjectList
 		{
 			public:
-			ObjectList(IdObject *object, ObjectList *tail)
+			ObjectList(unsigned index, ObjectList *tail)
 			{
 				m_next = tail;
-				m_object = object;
-				m_listSize = tail ? tail->m_listSize + 1 : 1;
+				m_index = index;
 			}
 
 			~ObjectList()
 			{
 				if (m_next)
 					delete m_next;
-					
-				delete m_object;
 			}
-			unsigned m_listSize;
 			ObjectList *m_next;
-			IdObject *m_object;
+			unsigned m_index;
 		};
 	public:
 		IdObjectStore(unsigned bitmaskSize);
@@ -499,7 +529,7 @@ class IdObjectStore
 			int c;
 			for (int i = 0; i < m_size; i++)
 			{
-				c = m_locator[i] ? m_locator[i]->m_listSize : 0;
+				c = m_listSizes[i];
 				s1 += c;
 				s2 += c * c;
 				if (c > *maxlen)
@@ -513,9 +543,10 @@ class IdObjectStore
 		}
 
 		ObjectList **m_locator;
-		IdObject *m_content;
+		IdObjectArrayLarge m_objects;
 		int m_size;
 		unsigned m_mask;
+		wxArrayInt m_listSizes;
 
 		void AddObject(IdObject *object);
 		IdObject *GetObject(unsigned id);
@@ -526,8 +557,8 @@ class IdObjectWithTags
 	: public IdObject
 {
 	public:
-		IdObjectWithTags(unsigned id = 0, IdObjectWithTags *next = NULL)
-			: IdObject(id, next)
+		IdObjectWithTags(unsigned id = 0)
+			: IdObject(id)
 		{
 			m_tags = NULL;
 		}
@@ -545,7 +576,7 @@ class IdObjectWithTags
 			m_tags = new OsmTag(key, value, m_tags);
 		}
 
-		bool HasTag(OsmTag const &tag)
+		bool HasTag(OsmTag const &tag) const
 		{
 			return m_tags ? m_tags->HasTag(tag) : false;
 		}
@@ -569,8 +600,8 @@ class OsmNode
 {
 	public:
 
-	OsmNode(unsigned id, double lat, double lon, OsmNode *next = NULL)
-		: IdObjectWithTags(id, next)
+	OsmNode(unsigned id, double lat, double lon)
+		: IdObjectWithTags(id)
 	{
 		if (lon > 180.0)
 			lon -= 360.0;
@@ -608,10 +639,9 @@ class OsmWay
 {
 	public:
 
-	OsmWay(unsigned id, OsmWay *next = NULL)
-		: IdObjectWithTags(id, next)
+	OsmWay(unsigned id)
+		: IdObjectWithTags(id)
 	{
-		m_nodeRefs = NULL;
 		m_resolvedNodes = NULL;
 		m_numResolvedNodes = 0;
 		m_relations = NULL;
@@ -619,10 +649,7 @@ class OsmWay
 
 	~OsmWay()
 	{
-		if (m_nodeRefs)
-		{
-			m_nodeRefs->DestroyList();
-		}
+		m_nodeRefs.Clear();
 
 		if (m_resolvedNodes)
 		{
@@ -649,6 +676,47 @@ class OsmWay
 
 	OsmNode *GetClosestNode(double lon, double lat, double *foundDistSquared);
 
+	unsigned FirstNodeId()
+	{
+		if (m_nodeRefs.GetCount())
+		{
+			return m_nodeRefs[0];
+		}
+
+		if (m_numResolvedNodes)
+		{
+			for (unsigned i = 0; i < m_numResolvedNodes; i++)
+			{
+				if (m_resolvedNodes[i])
+				{
+					return m_resolvedNodes[i]->m_id;
+				}
+			}
+		}
+
+		return 0;
+	}
+	unsigned LastNodeId()
+	{
+		if (m_nodeRefs.GetCount())
+		{
+			return m_nodeRefs.Last();
+		}
+
+		if (m_numResolvedNodes)
+		{
+			for (int i = m_numResolvedNodes-1; i >=0 ; i--)
+			{
+				if (m_resolvedNodes[i])
+				{
+					return m_resolvedNodes[i]->m_id;
+				}
+			}
+		}
+
+		return 0;
+
+	}
 
 	bool ContainsNode(OsmNode const *node) const
 	{
@@ -663,10 +731,10 @@ class OsmWay
 
 	void AddNodeRef(unsigned id)
 	{
-		m_nodeRefs = new IdObject(id, m_nodeRefs);
+		m_nodeRefs.Add(id);
 	}
 
-	IdObject *m_nodeRefs;
+	IdArray m_nodeRefs;
 
 	void Resolve(IdObjectStore *store);
 	// these are only valid after calling resolve
@@ -683,10 +751,9 @@ class OsmRelation
 	: public OsmWay
 {
 	public:
-	OsmRelation(unsigned id, OsmRelation *next = NULL)
-		: OsmWay(id, next)
+	OsmRelation(unsigned id)
+		: OsmWay(id)
 	{
-		m_wayRefs = NULL;
 		m_resolvedWays = NULL;
 		m_numResolvedWays = 0;
 	}
@@ -707,10 +774,7 @@ class OsmRelation
 	
 	~OsmRelation()
 	{
-		if (m_wayRefs)
-		{
-			m_wayRefs->DestroyList();
-		}
+		m_wayRefs.Clear();
 
 		if (m_resolvedWays)
 		{
@@ -718,15 +782,18 @@ class OsmRelation
 		}
 	}
 	
-	IdObject *m_wayRefs;
-	void AddWayRef(unsigned id)
+	IdArray m_wayRefs;
+
+	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role)
 	{
-		m_wayRefs = new IdObject(id, m_wayRefs);
+		m_wayRefs.Add(id);
+		m_roles.Add(role);
 	}
 	
 	void Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore);
 
 	OsmWay **m_resolvedWays;
+	RolesArray m_roles;
 	unsigned m_numResolvedWays;
 	
 };
@@ -767,7 +834,7 @@ class OsmData
 	void EndRelation();
 
 	void AddNodeRef(unsigned id);
-	void AddWayRef(unsigned id);
+	void AddWayRef(unsigned id, IdObjectWithRole::ROLE role);
 
 	void AddTag(char const *k, char const *v);
 	void AddAttribute(char const *k, char const *v);
@@ -789,6 +856,9 @@ class OsmData
 
 };
 
+WX_DEFINE_ARRAY_PTR(OsmWay *, WayPointerArray);
+WX_DEFINE_ARRAY_PTR(OsmNode *, NodePointerArray);
+WX_DEFINE_ARRAY_PTR(OsmRelation *, RelationPointerArray);
 
 
 #endif

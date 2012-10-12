@@ -92,3 +92,32 @@ void RendererWxBitmap::Commit()
 
 }
 
+void Renderer::AddWayPoints(OsmWay *w, bool reverse, POINTADDMODE mode)
+{
+
+	int start = mode == SKIPFIRST ? 1 : 0;
+	unsigned maxCount = mode == ONLYFIRST ? 1 : w->m_numResolvedNodes;
+	OsmNode *first = NULL;
+	for (unsigned j = start, count = 0; j < w->m_numResolvedNodes && count < maxCount; j++)
+	{
+		int index = reverse ? w->m_numResolvedNodes - 1 - j : j;
+		OsmNode *node = w->m_resolvedNodes[index];
+
+		if (!first)
+		{
+			first = node;
+		}
+
+		if (node)
+		{
+			AddPoint(node->Lon(), node->Lat());
+			count++;
+		}
+		//! maybe warn if we encounter any unresolved nodes here? for now we just accept any drawing errors
+	}
+
+	if (mode == REPEATFIRST && first)
+	{
+		AddPoint(first->Lon(), first->Lat());
+	}
+}
