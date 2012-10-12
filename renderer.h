@@ -52,6 +52,16 @@ class Renderer
 			End();
 		}
 
+		void SetLineColorf(float r, float g, float b, float a)
+		{
+			SetLineColor((int)(r * 255), (int)(g * 255),(int)(b * 255),(int)(a * 255));
+		}
+
+		void SetFillColorf(float r, float g, float b, float a)
+		{
+			SetFillColor((int)(r * 255), (int)(g * 255),(int)(b * 255),(int)(a * 255));
+		}
+
 		virtual void SetLineColor(int r, int g, int b, int a = 0) = 0;
 		virtual void SetFillColor(int r, int g, int b, int a = 0) = 0;
 		virtual void SetLineWidth(int width) = 0;
