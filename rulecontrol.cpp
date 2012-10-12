@@ -51,10 +51,13 @@ void RuleControl::OnText(wxCommandEvent &evt)
 
 	if (newRule.IsValid() || GetValue().Trim().IsEmpty())
 	{
-		m_rule = newRule;
+		if (newRule.Differs(m_rule))
+		{
+			m_rule = newRule;
 		
-		m_canvas->Redraw();
-		SetToolTip(wxT("expression ok"));
+			m_canvas->Redraw();
+			SetToolTip(wxT("expression ok"));
+		}
 	}
 	else
 	{
@@ -96,7 +99,12 @@ void RuleControl::SetColor(int from, int to, E_COLORS color)
 
 LogicalExpression::STATE RuleControl::Evaluate(IdObjectWithTags *o)
 {
-	return m_rule.Evaluate(o);
+	if (m_rule.Valid())
+	{
+		return m_rule.Evaluate(o);
+	}
+
+	return LogicalExpression::S_IGNORE;
 }
 
 

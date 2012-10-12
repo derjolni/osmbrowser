@@ -40,9 +40,11 @@ class LogicalExpression
 		{
 			S_FALSE,
 			S_TRUE,
-			S_IGNORE,
-			S_INVALID
+			S_IGNORE
+//			S_INVALID
 		};
+
+		virtual bool Valid() const = 0;
 
 		void AddChildren(LogicalExpression *c)
 		{
@@ -51,6 +53,8 @@ class LogicalExpression
 		bool m_disabled;
 		LogicalExpression *m_children;
 		virtual STATE GetValue(IdObjectWithTags *o) = 0;
+		virtual void Reorder() = 0;
+		virtual bool Same(LogicalExpression const *other) const = 0;
 };
 
 class Type
@@ -90,6 +94,21 @@ class Type
 			return Type::INVALID;
 		}
 
+		bool Valid() const
+		{
+			return m_type != Type::INVALID;
+		}
+
+		void Reorder()
+		{
+		}
+
+		bool Same(LogicalExpression const *other) const
+		{
+			Type const *o = dynamic_cast<Type const *>(other);
+
+			return o && (o->m_type == m_type);
+		}
 
 		Type(TYPE type)
 		{
@@ -112,11 +131,11 @@ class Type
 					return ((dynamic_cast<OsmWay *>(o) != NULL)  && (dynamic_cast<OsmRelation *>(o) == NULL)) ? S_TRUE : S_FALSE;
 				break;
 				case INVALID:
-					return S_INVALID;
+					return S_IGNORE;
 				break;
 			}
 
-			return S_INVALID;
+			return S_IGNORE;
 		}
 
 	private:
@@ -133,10 +152,26 @@ class Not
 			if (m_disabled)
 				return S_IGNORE;
 
-			STATE states[] = {  S_TRUE, S_FALSE, S_IGNORE, S_INVALID};
+			STATE states[] = {  S_TRUE, S_FALSE, S_IGNORE};
 			STATE s = m_children->GetValue(o);
 
 			return states[s];
+		}
+
+		bool Valid() const
+		{
+			return m_children->Valid();
+		}
+
+		void Reorder()
+		{
+		}
+
+		bool Same(LogicalExpression const *other) const
+		{
+			Not const *o = dynamic_cast<Not const *>(other);
+
+			return o && m_children->Same(o->m_children);
 		}
 
 };
@@ -166,6 +201,57 @@ class And
 			}
 
 			return trueCount ? S_TRUE : S_IGNORE;
+		}
+
+		bool Valid() const
+		{
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			{
+				if (!(l->Valid()))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		void Reorder()
+		{
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			{
+				l->Reorder();
+			}
+
+			// now that all children are in a standardized form, reorder the children
+			//!todo
+		}
+
+		bool Same(LogicalExpression const *other) const
+		{
+			And const *o = dynamic_cast<And const *>(other);
+
+			if (!o) // other is not same type
+			{
+				return false;
+			}
+
+			LogicalExpression *l, *ol;
+			for (l = m_children, ol = other->m_children; l && ol; l = static_cast<LogicalExpression *>(l->m_next), ol = static_cast<LogicalExpression *>(ol->m_next))
+			{
+				if (!l->Same(ol))
+				{
+					return false; // other's child differs
+				}
+			}
+
+			if (l || ol) // other has different amount of children
+			{
+				return false;
+			}
+
+
+			return true;
 		}
 
 };
@@ -203,6 +289,57 @@ class Or
 			return falseCount ? S_FALSE : S_IGNORE;
 		}
 
+		bool Valid() const
+		{
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			{
+				if (!(l->Valid()))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		void Reorder()
+		{
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			{
+				l->Reorder();
+			}
+
+			// now that all children are in a standardized form, reorder the children
+			//!todo
+		}
+
+		bool Same(LogicalExpression const *other) const
+		{
+			Or const *o = dynamic_cast<Or const *>(other);
+
+			if (!o) // other is not same type
+			{
+				return false;
+			}
+
+			LogicalExpression *l, *ol;
+			for (l = m_children, ol = other->m_children; l && ol; l = static_cast<LogicalExpression *>(l->m_next), ol = static_cast<LogicalExpression *>(ol->m_next))
+			{
+				if (!l->Same(ol))
+				{
+					return false; // other's child differs
+				}
+			}
+
+			if (l || ol) // other has different amount of children
+			{
+				return false;
+			}
+
+
+			return true;
+		}
+
 };
 
 
@@ -220,10 +357,22 @@ class Tag
 			delete m_tag;
 		}
 
-//		bool Valid()
-//		{
-//			return m_tag->Valid();
-//		}
+		bool Valid() const
+		{
+			return true;
+		}
+
+		void Reorder()
+		{
+		}
+
+		bool Same(LogicalExpression const *other) const
+		{
+			Tag const *o = dynamic_cast<Tag const *>(other);
+
+			return o && m_tag->Equal(o->m_tag);
+		}
+
 
 		char const *Key() const
 		{
@@ -339,6 +488,22 @@ class Rule
 			m_errorPos = 0;
 		}
 
+		bool Differs(Rule const &other) const
+		{
+			if (!m_expr && ! other.m_expr)
+			{
+				return false;
+			}
+
+			if (!m_expr)
+			{
+				return true;
+			}
+
+			return !m_expr->Same(other.m_expr);
+		}
+
+
 		Rule(Rule const &other)
 		{
 			m_expr = NULL;
@@ -367,11 +532,15 @@ class Rule
 
 			m_errorLog = wxString::FromUTF8(errorLog);
 
+			if (m_expr && m_expr->Valid())
+			{
+				m_expr->Reorder(); // use a standard ordering, to make comparing easier
+			}
 			return m_expr;
 		}
 
 
-		bool IsValid() { return m_expr; }
+		bool IsValid() { return m_expr && m_expr->Valid(); }
 		
 		wxString const &GetErrorLog()
 		{
@@ -383,11 +552,17 @@ class Rule
 			return m_errorPos;
 		}
 
+		bool Valid()
+		{
+			return m_expr && m_expr->Valid();
+		}
+
 		LogicalExpression::STATE Evaluate(IdObjectWithTags *o)
 		{
+			assert(Valid());
 			if (!m_expr)
 			{
-				return LogicalExpression::S_INVALID;
+				return LogicalExpression::S_IGNORE;
 			}
 
 			return m_expr->GetValue(o);

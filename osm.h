@@ -269,9 +269,19 @@ class TagIndex
 		}
 
 		// a tagIndex whose value-part = 0 will match only the key part
-		bool operator==(const TagIndex &other)
+//		bool operator==(const TagIndex &other)
+//		{
+//			return (m_keyIndex == other.m_keyIndex) && (!m_valueIndex || !(other.m_valueIndex) || (m_valueIndex == other.m_valueIndex));
+//		}
+
+		bool Matches(const TagIndex &other) const
 		{
 			return (m_keyIndex == other.m_keyIndex) && (!m_valueIndex || !(other.m_valueIndex) || (m_valueIndex == other.m_valueIndex));
+		}
+
+		bool Equal(const TagIndex &other) const
+		{
+			return (m_keyIndex == other.m_keyIndex) && (m_valueIndex == other.m_valueIndex);
 		}
 
 };
@@ -417,7 +427,7 @@ class OsmTag
 
 	bool HasTag(OsmTag const &other)
 	{
-		if (m_index == other.m_index)
+		if (m_index.Matches(other.m_index))
 		{
 			return true;
 		}
@@ -426,6 +436,12 @@ class OsmTag
 
 		return static_cast<OsmTag *>(m_next)->HasTag(other);
 
+	}
+
+	//exact match of this tag (and only this one, doesn't look at m_next)
+	bool Equal(OsmTag *other) const
+	{
+		return m_index.Equal(other->m_index);
 	}
 
 	static TagStore *m_tagStore;
