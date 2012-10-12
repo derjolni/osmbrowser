@@ -856,9 +856,9 @@ class OsmData
 
 };
 
-WX_DEFINE_ARRAY(OsmWay *, WayPointerArray);
-WX_DEFINE_ARRAY(OsmNode *, NodePointerArray);
-WX_DEFINE_ARRAY(OsmRelation *, RelationPointerArray);
+WX_DEFINE_ARRAY_PTR(OsmWay *, WayPointerArray);
+WX_DEFINE_ARRAY_PTR(OsmNode *, NodePointerArray);
+WX_DEFINE_ARRAY_PTR(OsmRelation *, RelationPointerArray);
 
 
 #endif
