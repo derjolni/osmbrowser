@@ -343,7 +343,8 @@ OsmData *parse_binary(FILE *f, bool skipAttribs)
 	char buffer[1024];
 
 
-	int rret = fread(buffer, strlen(FILEFORMAT_VERSION), 1, f);
+	size_t len = strlen(FILEFORMAT_VERSION);
+	int rret = fread(buffer,len , 1, f);
 
 	if (rret !=1)
 	{
@@ -351,7 +352,7 @@ OsmData *parse_binary(FILE *f, bool skipAttribs)
 		return NULL;
 	}
 
-	if (strcmp(FILEFORMAT_VERSION, buffer))
+	if (strncmp(FILEFORMAT_VERSION, buffer, len))
 	{
 		printf("not a valid OsmBrowser cache file!");
 		return NULL; // invalid cache data
