@@ -78,45 +78,14 @@ class CairoRenderer
 			delete [] layers;
 		}
 
-		void Begin(Renderer::TYPE type, int layer)
-		{
-			m_type = type;
-			m_curLayer = layer;
-			cairo_set_fill_rule (layers[layer], CAIRO_FILL_RULE_EVEN_ODD);
-			if(type != R_INNER && type != R_OUTER)
-			{
-				cairo_new_path(layers[layer]);
-			}
-		}
+		void Begin(Renderer::TYPE type, int layer);
 
 		void AddPoint(double x, double y, double xshift = 0, double yshift = 0)
 		{
 			cairo_line_to(layers[m_curLayer], (x - m_offX) * m_scaleX + xshift, m_outputHeight - (y - m_offY) * m_scaleY + yshift);
 		}
 
-		void End()
-		{
-			switch(m_type)
-			{
-				case R_MULTIPOLYGON:
-					//fallthrough
-				case R_POLYGON:
-					cairo_set_source_rgba(layers[m_curLayer], m_fillR, m_fillG, m_fillB, m_fillA);
-					cairo_fill_preserve(layers[m_curLayer]);
-					// fall through;
-				case R_LINE:
-					cairo_set_line_width(layers[m_curLayer], m_lineWidth);
-					cairo_set_source_rgba(layers[m_curLayer], m_lineR, m_lineG, m_lineB, m_lineA);
-					cairo_stroke(layers[m_curLayer]);
-					break;
-				case R_INNER:
-					m_type = R_MULTIPOLYGON;
-					break;
-				case R_OUTER:
-					m_type = R_MULTIPOLYGON;
-					break;
-			}
-		}
+		void End();
 
 		bool SupportsLayers() { return true; }
 

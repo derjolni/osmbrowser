@@ -5,6 +5,47 @@
 #include "utils.h"
 #include "wxcairo.h"
 
+
+void CairoRenderer::Begin(Renderer::TYPE type, int layer)
+{
+	m_type = type;
+	m_curLayer = layer;
+	cairo_set_fill_rule (layers[layer], CAIRO_FILL_RULE_EVEN_ODD);
+	if(type != R_INNER && type != R_OUTER)
+	{
+		cairo_new_path(layers[layer]);
+	}
+	else
+	{
+		cairo_close_path(layers[layer]);
+		cairo_new_sub_path(layers[layer]);
+	}
+}
+
+void CairoRenderer::End()
+{
+	switch(m_type)
+	{
+		case R_MULTIPOLYGON:
+			//fallthrough
+		case R_POLYGON:
+			cairo_set_source_rgba(layers[m_curLayer], m_fillR, m_fillG, m_fillB, m_fillA);
+			cairo_fill_preserve(layers[m_curLayer]);
+			// fall through;
+		case R_LINE:
+			cairo_set_line_width(layers[m_curLayer], m_lineWidth);
+			cairo_set_source_rgba(layers[m_curLayer], m_lineR, m_lineG, m_lineB, m_lineA);
+			cairo_stroke(layers[m_curLayer]);
+			break;
+		case R_INNER:
+			m_type = R_MULTIPOLYGON;
+			break;
+		case R_OUTER:
+			m_type = R_MULTIPOLYGON;
+			break;
+	}
+}
+
 void CairoRenderer::Commit()
 {
 
@@ -28,9 +69,14 @@ void CairoRenderer::Commit()
 void CairoPdfRenderer::Begin(Renderer::TYPE type, int layer)
 {
 	cairo_set_fill_rule (m_context, CAIRO_FILL_RULE_EVEN_ODD);
-	if (type != R_INNER && type != R_OUTER)
+	if(type != R_INNER && type != R_OUTER)
 	{
 		cairo_new_path(m_context);
+	}
+	else
+	{
+		cairo_close_path(m_context);
+		cairo_new_sub_path(m_context);
 	}
 }
 
