@@ -159,6 +159,19 @@ void PolygonAssembler::AssembleAndRender(Renderer *r, WayPointerArray *a, bool i
 
 }
 
+void PolygonAssembler::Dump(WayPointerArray const &ways)
+{
+	printf("=============================================================================================\n");
+	for (unsigned i = 0; i < ways.GetCount(); i++)
+	{
+		OsmWay *w = ways[i];
+
+		printf("%u: %u ... %u\n", i, w->m_resolvedNodes[0]->m_id, w->m_resolvedNodes[w->m_numResolvedNodes-1]->m_id);
+	}
+	printf("=============================================================================================\n");
+
+}
+
 void PolygonAssembler::Render(Renderer *r, int layer)
 {
 	r->Begin(Renderer::R_MULTIPOLYGON, layer);

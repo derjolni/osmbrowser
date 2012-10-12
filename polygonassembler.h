@@ -41,6 +41,7 @@ class PolygonAssembler
 		void Render(Renderer *r, int layer);
 
 	private:
+		void Dump(WayPointerArray const &ways);
 		void AssembleAndRender(Renderer *r, WayPointerArray *a, bool inner, int layer);
 		WayPointerArray m_outerWays;
 		WayPointerArray m_innerWays;
