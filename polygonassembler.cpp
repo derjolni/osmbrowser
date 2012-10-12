@@ -125,10 +125,10 @@ void PolygonAssembler::AssembleAndRender(Renderer *r, WayPointerArray *a, bool i
 			bool notFirst = false;
 			while (cur)
 			{
-				r->AddWayPoints(cur, false, notFirst ? Renderer::SKIPFIRST : Renderer::NORMAL);
+				r->AddWayPoints(cur, reverse, notFirst ? Renderer::SKIPFIRST : Renderer::NORMAL);
 				notFirst = true;
+				unsigned end = reverse ?  cur->FirstNodeId() : cur->LastNodeId();
 				OsmWay *next = cur = NULL;
-				unsigned end = reverse ? cur->LastNodeId() : cur->FirstNodeId();
 				for (unsigned i = 0; i < a->GetCount(); i++)
 				{
 					next = (*a)[i];
@@ -148,8 +148,6 @@ void PolygonAssembler::AssembleAndRender(Renderer *r, WayPointerArray *a, bool i
 					}
 				}
 			}
-			// add first point of startway to close the loop
-			r->AddWayPoints(start, false, Renderer::ONLYFIRST);
 		}
 		r->End();
 
