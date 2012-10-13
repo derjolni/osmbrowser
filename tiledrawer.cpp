@@ -207,7 +207,7 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 				if (r->m_resolvedWays[i])
 				{
 					RenderWay(job->m_renderer, r->m_resolvedWays[i], c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
-					job->m_renderedWayIds.Add(r->m_resolvedWays[i]->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+//					job->m_renderedWayIds.Add(r->m_resolvedWays[i]->m_id); // if it has been drawn in the relation, don't draw it again on it's own
 				}
 			}
 		}
@@ -220,7 +220,7 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 				if (w)
 				{
 					a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
-					job->m_renderedWayIds.Add(w->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+//					job->m_renderedWayIds.Add(w->m_id); // if it has been drawn in the relation, don't draw it again on it's own
 				}
 			}
 			job->m_renderer->SetLineColor(c.Red(), c.Green(), c.Blue());
