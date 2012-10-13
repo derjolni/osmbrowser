@@ -17,14 +17,13 @@ BEGIN_EVENT_TABLE(OsmCanvas, Canvas)
 //        EVT_MIDDLE_UP(OsmCanvas::OnMiddleUp)
 //        EVT_RIGHT_UP(OsmCanvas::OnRightUp)
 	EVT_MOTION(OsmCanvas::OnMouseMove)
-	EVT_TIMER(-1, OsmCanvas::OnTimer)
+	EVT_IDLE(OsmCanvas::OnIdle)
 END_EVENT_TABLE()
 
 
 OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxString const &fileName, int numLayers)
 	: Canvas(parent)
 {
-	m_timer.SetOwner(this);
 	m_done = false;
 	m_restart = true;
 	m_app = app;
@@ -119,7 +118,7 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 
 	m_tileDrawer->SetSelectionColor(255,100,100);
 
-	m_timer.Start(10, true);
+	wxWakeUpIdle();
 }
 
 void OsmCanvas::Render(bool force)
@@ -164,7 +163,7 @@ void OsmCanvas::Render(bool force)
 		m_renderJob = new CanvasJob(m_app, m_mainFrame, m_renderer);
 	}
 
-	m_done = m_tileDrawer->RenderTiles(m_renderJob, 1000);
+	m_done = m_tileDrawer->RenderTiles(m_renderJob, 10);
 
 	m_tileDrawer->DrawOverlay(m_renderer);
 	

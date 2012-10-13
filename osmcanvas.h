@@ -76,7 +76,7 @@ class OsmCanvas
 		void OnLeftDown(wxMouseEvent &evt);
 		void OnLeftUp(wxMouseEvent &evt);
 		void OnMouseMove(wxMouseEvent &evt);
-		void OnTimer(wxTimerEvent &evt)
+		void OnIdle(wxIdleEvent &evt)
 		{
 			if (m_busy)
 			{
@@ -88,9 +88,13 @@ class OsmCanvas
 			}
 
 			if (m_done)
+			{
 				Draw(NULL);
-
-			m_timer.Start(100, true);
+			}
+			else
+			{
+				wxWakeUpIdle();
+			}
 		}
 
 		double m_scale;
@@ -107,7 +111,6 @@ class OsmCanvas
 		bool m_restart;
 		bool m_locked;
 		bool m_busy;
-		wxTimer m_timer;
 
 		Renderer *m_renderer;
 

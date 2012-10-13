@@ -487,6 +487,26 @@ void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 		m_wayRefs.Clear();
 	}
 
+	if (!HasTags() || HasTag("type", "multipolygon"))
+	{
+		unsigned outerWay = 0;
+		unsigned numOuter = 0;
+		for (unsigned i = 0; i < m_numResolvedWays; i++)
+		{
+			if (m_roles[i] == IdObjectWithRole::OUTER)
+			{
+				outerWay = i;
+				numOuter++;
+			}
+		}
+
+		if (numOuter == 1 && m_resolvedWays[outerWay] && m_resolvedWays[outerWay]->HasTags())
+		{
+			// steal tags
+			StealTags(m_resolvedWays[outerWay]);
+		}
+	}
+
 }
 
 IdObjectStore::IdObjectStore(unsigned bitmaskSize)
