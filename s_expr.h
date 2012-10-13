@@ -3,6 +3,7 @@
 // osmbrowser is licenced under the gpl v3
 #ifndef __S_EXPRESSION_H__
 #define __S_EXPRESSION_H__
+#include <wx/dynarray.h>
 
 #include <ctype.h>
 /*
@@ -20,7 +21,7 @@
 
 #include "osm.h"
 #include "external-libs/md5/md5.h"
-
+// an MD5 class geared to comparing LogicalExpression instances
 class ExpressionMD5
 {
 	public:
@@ -28,6 +29,7 @@ class ExpressionMD5
 		{
 			m_inited = false;
 			m_finished = false;
+			memset(m_digest, 0, 16);
 		}
 
 		void Add(ExpressionMD5 const &other)
@@ -59,6 +61,14 @@ class ExpressionMD5
 			return m_finished;
 		}
 
+		ExpressionMD5 const &operator=(ExpressionMD5 const &other)
+		{
+			m_finished = other.m_finished;
+			m_inited = other.m_inited;
+			memcpy(m_digest, other.m_digest, 16);
+			return *this;
+		}
+
 		// difference for sorting
 		int Difference(ExpressionMD5 const &other) const
 		{
@@ -87,6 +97,14 @@ class ExpressionMD5
 			return 0;
 		}
 
+		void Dump() const
+		{
+			printf("%c%c", m_inited ? 't' : 'f' ,m_finished ? 't' : 'f');
+			for (int i = 0; i < 16 ; i++)
+			{
+				printf("%02X", m_digest[i]);
+			}
+		}
 
 	private:
 		friend class LogicalExpression;
@@ -94,26 +112,27 @@ class ExpressionMD5
 		{
 			assert(!m_inited);
 			md5_init(&m_md5);
+			m_inited = true;
 		}
 		md5_state_t m_md5;
 		bool m_finished, m_inited;
 		char m_digest[16];
 };
 
+class LogicalExpression;
+
+WX_DEFINE_ARRAY_PTR(LogicalExpression *, LogicalExpressionArray);
+
 class LogicalExpression
-	: public ListObject
 {
 	public:
 		LogicalExpression()
-			: ListObject(NULL)
 		{
 			m_disabled = false;
-			m_children = NULL;
 		}
 		virtual ~LogicalExpression()
 		{
-			if (m_children)
-				m_children->DestroyList();
+			WX_CLEAR_ARRAY(m_children);
 		}
 
 		enum STATE
@@ -126,12 +145,22 @@ class LogicalExpression
 
 		virtual bool Valid() const = 0;
 
-		void AddChildren(LogicalExpression *c)
+		void AddChild(LogicalExpression *c)
 		{
-			m_children = static_cast<LogicalExpression *>(ListObject::Concat(m_children, c));
+			m_children.Add(c);
 		}
 
-		LogicalExpression *m_children;
+		void ClearChildren()
+		{
+			WX_CLEAR_ARRAY(m_children);
+		}
+
+		unsigned GetNumChildren()
+		{
+			return m_children.GetCount();
+		}
+
+		LogicalExpressionArray m_children;
 		virtual STATE GetValue(IdObjectWithTags *o) = 0;
 		virtual void Reorder() = 0;
 		bool Same(LogicalExpression const *other)
@@ -152,6 +181,8 @@ class LogicalExpression
 			return m_md5;
 		}
 		bool m_disabled;
+
+		virtual void Dump(int indent) const = 0;
 	protected:
 		virtual void CalcMD5() const = 0;
 		mutable ExpressionMD5 m_md5;
@@ -186,6 +217,17 @@ class Type
 			INVALID
 		};
 
+		static char const *s_typeNames[];
+		static unsigned s_numTypes;
+
+		void Dump(int indent) const
+		{
+			for (int i = 0; i < indent; i++)
+				printf(" ");
+			m_md5.Dump();
+			printf(" (type \"%s\")\n", s_typeNames[m_type]);
+		}
+
 		static TYPE GetType(char const *s)
 		{
 			if (!s)
@@ -193,16 +235,10 @@ class Type
 				return INVALID;
 			}
 
-			static char const *typeNames[] =
-			{
-				"node",
-				"way",
-				"relation"
-			};
 
-			for (unsigned i = 0; i < sizeof(typeNames)/ sizeof(char const *); i++)
+			for (unsigned i = 0; i < s_numTypes; i++)
 			{
-				if (!strcmp(s, typeNames[i]))
+				if (!strcmp(s, s_typeNames[i]))
 				{
 					return (Type::TYPE)i;
 				}
@@ -271,14 +307,30 @@ class Not
 				return S_IGNORE;
 
 			STATE states[] = {  S_TRUE, S_FALSE, S_IGNORE};
-			STATE s = m_children->GetValue(o);
+			STATE s = m_children[0]->GetValue(o);
 
 			return states[s];
 		}
 
+		void Dump(int indent) const
+		{
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			m_md5.Dump();
+			printf(" (not\n");
+			m_children[0]->Dump(indent+1);
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			printf(")");
+		}
+
 		bool Valid() const
 		{
-			return m_children->Valid();
+			return m_children[0]->Valid();
 		}
 
 		void Reorder()
@@ -289,7 +341,7 @@ class Not
 		{
 			int op = (int)(Operators::NOT);
 			m_md5.Add(&op, sizeof(op));
-			m_md5.Add(m_children->MD5());
+			m_md5.Add(m_children[0]->MD5());
 			m_md5.Finish();
 		}
 
@@ -306,11 +358,11 @@ class And
 				return S_IGNORE;
 		
 			int trueCount = 0;
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				if (!l->m_disabled)
+				if (!m_children[i]->m_disabled)
 				{
-					STATE s = l->GetValue(o);
+					STATE s = m_children[i]->GetValue(o);
 					if (s == S_FALSE)
 						return S_FALSE;
 					else if (s == S_TRUE)
@@ -323,11 +375,31 @@ class And
 			return trueCount ? S_TRUE : S_IGNORE;
 		}
 
+		void Dump(int indent) const
+		{
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			m_md5.Dump();
+			printf(" (and\n");
+			for (unsigned i = 0 ; i < m_children.GetCount(); i++)
+			{
+				m_children[i]->Dump(indent+1);
+			}
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			printf(")\n");
+		}
+
+
 		bool Valid() const
 		{
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				if (!(l->Valid()))
+				if (!(m_children[i]->Valid()))
 				{
 					return false;
 				}
@@ -338,9 +410,9 @@ class And
 
 		void Reorder()
 		{
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				l->Reorder();
+				m_children[i]->Reorder();
 			}
 
 			// now that all children are in a standardized form, reorder the children
@@ -351,9 +423,9 @@ class And
 		{
 			int op = (int)(Operators::AND);
 			m_md5.Add(&op, sizeof(op));
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				m_md5.Add(l->MD5());
+				m_md5.Add(m_children[i]->MD5());
 			}
 			m_md5.Finish();
 		}
@@ -371,11 +443,11 @@ class Or
 				return S_IGNORE;
 
 			int falseCount = 0;
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				if ( !l->m_disabled)
+				if ( !m_children[i]->m_disabled)
 				{
-					STATE s = l->GetValue(o);
+					STATE s = m_children[i]->GetValue(o);
 
 					switch(s)
 					{
@@ -396,9 +468,9 @@ class Or
 
 		bool Valid() const
 		{
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				if (!(l->Valid()))
+				if (!(m_children[i]->Valid()))
 				{
 					return false;
 				}
@@ -407,11 +479,31 @@ class Or
 			return true;
 		}
 
+
+		void Dump(int indent) const
+		{
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			m_md5.Dump();
+			printf(" (or\n");
+			for (unsigned i = 0 ; i < m_children.GetCount(); i++)
+			{
+				m_children[i]->Dump(indent+1);
+			}
+			for (int i = 0; i < indent; i++)
+			{
+				printf(" ");
+			}
+			printf(")\n");
+		}
+
 		void Reorder()
 		{
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				l->Reorder();
+				m_children[i]->Reorder();
 			}
 
 			// now that all children are in a standardized form, reorder the children
@@ -422,9 +514,9 @@ class Or
 		{
 			int op = (int)(Operators::OR);
 			m_md5.Add(&op, sizeof(op));
-			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
+			for (unsigned i = 0; i < m_children.GetCount(); i++)
 			{
-				m_md5.Add(l->MD5());
+				m_md5.Add(m_children[i]->MD5());
 			}
 			m_md5.Finish();
 		}
@@ -444,6 +536,15 @@ class Tag
 		~Tag()
 		{
 			delete m_tag;
+		}
+
+
+		void Dump(int indent) const
+		{
+			for (int i = 0; i < indent; i++)
+				printf(" ");
+			m_md5.Dump();
+			printf(" (tag %d %d)\n", m_tag->m_index.m_keyIndex, m_tag->m_index.m_valueIndex);
 		}
 
 		bool Valid() const
@@ -522,7 +623,7 @@ class ExpressionParser
 		
 		char *ParseString(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos);
 		
-		LogicalExpression *ParseMultiple(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos);
+		unsigned ParseMultiple(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos, LogicalExpression *parent);
 
 		LogicalExpression *ParseSingle(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos);
 
@@ -580,6 +681,22 @@ class Rule
 			}
 
 			return !m_expr->Same(other.m_expr);
+		}
+
+		void Dump() const
+		{
+			printf("dump rule %p  -----------\n", this);
+			if (!m_expr)
+			{
+				printf("(no rule)\n");
+			}
+			else
+			{
+				m_expr->MD5(); // force calculating of MD5s
+				m_expr->Dump(0);
+			}
+			printf("-----------\n");
+
 		}
 
 

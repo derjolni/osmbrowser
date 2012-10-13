@@ -4,6 +4,15 @@
 #include "s_expr.h"
 
 
+char const *Type::s_typeNames[] =
+{
+	"node",
+	"way",
+	"relation"
+};
+
+unsigned Type::s_numTypes = sizeof(Type::s_typeNames) / sizeof(char *);
+
 
 Operators::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int *pos, bool *disabled)
 {
@@ -87,14 +96,16 @@ char *ExpressionParser::ParseString(char const *f, int *pos, char *logError, uns
 }
 
 
-LogicalExpression *ExpressionParser::ParseMultiple(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos)
+unsigned ExpressionParser::ParseMultiple(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos, LogicalExpression *parent)
 {
 	LogicalExpression *ret = ParseSingle(f, pos, logError, maxLogErrorSize, errorPos);
 
 	if (!ret)
 	{
-		return NULL;
+		return 0;
 	}
+
+	parent->AddChild(ret);
 
 	LogicalExpression *next;
 
@@ -111,14 +122,14 @@ LogicalExpression *ExpressionParser::ParseMultiple(char const *f, int *pos, char
 
 		if (!next)
 		{
-			ret->DestroyList();
-			return NULL;
+			parent->ClearChildren();
+			return 0;
 		}
-		
-		ret = static_cast<LogicalExpression *>(ListObject::Concat(ret, next));
+
+		parent->AddChild(next);
 	}
 
-	return ret;
+	return parent->GetNumChildren();
 }
 
 void ExpressionParser::EatSpace(char const *s, int *pos)
@@ -217,14 +228,14 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 				if (value)
 				{
 					LogicalExpression *orExpr = new Or;
-					LogicalExpression *orChildren = static_cast<LogicalExpression *>(ListObject::Concat(tag, new Tag(tag->Key(), value)));
+					orExpr->AddChild(tag);
+					orExpr->AddChild(new Tag(tag->Key(), value));
 
 					while ((value = ParseString(f, &p,logError, maxLogErrorSize, errorPos)))
 					{
-						orChildren = static_cast<LogicalExpression *>(ListObject::Concat(orChildren, new Tag(tag->Key(), value)));
+						orExpr->AddChild(new Tag(tag->Key(), value));
 					}
 
-					orExpr->AddChildren(orChildren);
 					ret = orExpr;
 				}
 			}
@@ -250,12 +261,14 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 		case Operators::AND:
 		//fallthrough
 		case Operators::OR:
-			c = ParseMultiple(f, &p, logError, maxLogErrorSize, errorPos);
-			if (!c)
+		{
+			unsigned howMany = ParseMultiple(f, &p, logError, maxLogErrorSize, errorPos, ret);
+			if (!howMany)
 			{
 //				snprintf(logError, maxLogErrorSize, "expect subexpression(s)");
 				goto error;
 			}
+		}
 		break;
 		case Operators::TAG:
 		break;
@@ -266,7 +279,7 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 
 	if (c)
 	{
-		ret->AddChildren(c);
+		ret->AddChild(c);
 	}
 
 	EatSpace(f, &p);

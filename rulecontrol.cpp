@@ -48,6 +48,7 @@ void RuleControl::OnText(wxCommandEvent &evt)
 {
 	Rule newRule(GetValue(), this);
 
+//	newRule.Dump();
 
 	if (newRule.IsValid() || GetValue().Trim().IsEmpty())
 	{
