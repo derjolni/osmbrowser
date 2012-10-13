@@ -90,7 +90,7 @@ class OsmCanvas
 			if (m_done)
 				Draw(NULL);
 
-			m_timer.Start(100, true);
+			m_timer.Start(1, true);
 		}
 
 		double m_scale;
