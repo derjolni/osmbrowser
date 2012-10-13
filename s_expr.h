@@ -189,6 +189,10 @@ class LogicalExpression
 
 };
 
+
+int CompareLogicalExpressionPtrs(LogicalExpression **p1, LogicalExpression **p2);
+
+
 class Operators
 {
 public:
@@ -254,6 +258,7 @@ class Type
 
 		void Reorder()
 		{
+			// nothing to do
 		}
 
 		Type(TYPE type)
@@ -335,6 +340,7 @@ class Not
 
 		void Reorder()
 		{
+			// nothing to do
 		}
 
 		void CalcMD5() const
@@ -416,7 +422,7 @@ class And
 			}
 
 			// now that all children are in a standardized form, reorder the children
-			//!todo
+			m_children.Sort(CompareLogicalExpressionPtrs);
 		}
 
 		void CalcMD5() const
@@ -507,7 +513,7 @@ class Or
 			}
 
 			// now that all children are in a standardized form, reorder the children
-			//!todo
+			m_children.Sort(CompareLogicalExpressionPtrs);
 		}
 
 		void CalcMD5() const
@@ -554,6 +560,7 @@ class Tag
 
 		void Reorder()
 		{
+			// nothing to do
 		}
 
 		char const *Key() const

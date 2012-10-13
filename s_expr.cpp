@@ -13,6 +13,10 @@ char const *Type::s_typeNames[] =
 
 unsigned Type::s_numTypes = sizeof(Type::s_typeNames) / sizeof(char *);
 
+int CompareLogicalExpressionPtrs(LogicalExpression **p1, LogicalExpression **p2)
+{
+	return (*p1)->MD5().Difference((*p2)->MD5());
+}
 
 Operators::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int *pos, bool *disabled)
 {
