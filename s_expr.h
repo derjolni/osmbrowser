@@ -62,6 +62,20 @@ class ExpressionMD5
 		// difference for sorting
 		int Difference(ExpressionMD5 const &other) const
 		{
+			if (!m_finished && !other.m_finished)
+			{
+				return 0;
+			}
+
+			if (!m_finished)
+			{
+				return 1;
+			}
+			else if (!other.m_finished)
+			{
+				return -1;
+			}
+
 			for (int i = 0; i < 16; i++)
 			{
 				if (m_digest[i] != other.m_digest[i])
@@ -620,6 +634,12 @@ class Rule
 		bool Valid()
 		{
 			return m_expr && m_expr->Valid();
+		}
+
+		ExpressionMD5 const &MD5()
+		{
+			static ExpressionMD5 s_empty;
+			return m_expr ? m_expr->MD5() : s_empty;
 		}
 
 		LogicalExpression::STATE Evaluate(IdObjectWithTags *o)
