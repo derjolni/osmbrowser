@@ -5,7 +5,7 @@
 
 
 
-ExpressionParser::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int *pos, bool *disabled)
+Operators::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int *pos, bool *disabled)
 {
 	char const *operators[] =
 	{
@@ -27,11 +27,11 @@ ExpressionParser::E_OPERATOR ExpressionParser::MatchOperator(char const *s, int 
 			int len = strlen(operators[i]);
 			SetColorD(*pos, *pos + len, RuleDisplay::EC_OPERATOR);
 			*pos += len;
-			return static_cast<ExpressionParser::E_OPERATOR>(i);
+			return static_cast<Operators::E_OPERATOR>(i);
 		}
 	}
 
-	return static_cast<ExpressionParser::E_OPERATOR>(count);
+	return static_cast<Operators::E_OPERATOR>(count);
 }
 
 
@@ -141,7 +141,7 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 	bool disabled = false;
 	LogicalExpression *ret = NULL;
 	LogicalExpression *c = NULL;
-	E_OPERATOR op = INVALID;
+	Operators::E_OPERATOR op = Operators::INVALID;
 
 	EatSpace(f, pos);
 
@@ -169,16 +169,16 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 
 	switch(op)
 	{
-		case NOT: // not
+		case Operators::NOT: // not
 			ret = new Not;
 		break;
-		case AND:  // and
+		case Operators::AND:  // and
 			ret = new And;
 		break;
-		case OR:
+		case Operators::OR:
 			ret = new Or;
 		break;
-		case TYPE:
+		case Operators::TYPE:
 		{
 			Type::TYPE t = Type::GetType(ParseString(f, &p,logError, maxLogErrorSize, errorPos));
 
@@ -191,7 +191,7 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 			ret = new Type(t);
 		}
 		break;
-		case TAG:
+		case Operators::TAG:
 		{
 			char const *key = ParseString(f, &p,logError, maxLogErrorSize, errorPos);
 			char const *value = ParseString(f, &p,logError, maxLogErrorSize, errorPos);
@@ -239,7 +239,7 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 
 	switch(op)
 	{
-		case NOT:
+		case Operators::NOT:
 			c = ParseSingle(f, &p, logError, maxLogErrorSize, errorPos);
 			if (!c)
 			{
@@ -247,9 +247,9 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 				goto error;
 			}
 		break;
-		case AND:
+		case Operators::AND:
 		//fallthrough
-		case OR:
+		case Operators::OR:
 			c = ParseMultiple(f, &p, logError, maxLogErrorSize, errorPos);
 			if (!c)
 			{
@@ -257,7 +257,7 @@ LogicalExpression *ExpressionParser::ParseSingle(char const *f, int *pos, char *
 				goto error;
 			}
 		break;
-		case TAG:
+		case Operators::TAG:
 		break;
 		default:
 		break;

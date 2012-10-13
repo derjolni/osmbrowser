@@ -19,6 +19,72 @@
 */
 
 #include "osm.h"
+#include "external-libs/md5/md5.h"
+
+class ExpressionMD5
+{
+	public:
+		ExpressionMD5()
+		{
+			m_inited = false;
+			m_finished = false;
+		}
+
+		void Add(ExpressionMD5 const &other)
+		{
+			assert(m_inited);
+			assert(other.Finished());
+			Add(other.m_digest, 16);
+		}
+
+		void Add(void const *data, int num)
+		{
+			assert(m_inited);
+			assert(!m_finished);
+			assert(sizeof(md5_byte_t) == sizeof(char));
+			md5_append(&m_md5, (md5_byte_t *)data, num);
+		}
+		void Finish()
+		{
+			assert(m_inited);
+			assert(!m_finished);
+			assert(sizeof(md5_byte_t) == sizeof(char));
+			md5_finish(&m_md5, (md5_byte_t *)m_digest);
+			m_finished = true;
+			m_inited = false;
+		}
+
+		bool Finished() const
+		{
+			return m_finished;
+		}
+
+		// difference for sorting
+		int Difference(ExpressionMD5 const &other) const
+		{
+			for (int i = 0; i < 16; i++)
+			{
+				if (m_digest[i] != other.m_digest[i])
+				{
+					return m_digest[i] - other.m_digest[i];
+				}
+			}
+
+			return 0;
+		}
+
+
+	private:
+		friend class LogicalExpression;
+		void Init()
+		{
+			assert(!m_inited);
+			md5_init(&m_md5);
+		}
+		md5_state_t m_md5;
+		bool m_finished, m_inited;
+		char m_digest[16];
+};
 
 class LogicalExpression
 	: public ListObject
@@ -50,11 +116,48 @@ class LogicalExpression
 		{
 			m_children = static_cast<LogicalExpression *>(ListObject::Concat(m_children, c));
 		}
-		bool m_disabled;
+
 		LogicalExpression *m_children;
 		virtual STATE GetValue(IdObjectWithTags *o) = 0;
 		virtual void Reorder() = 0;
-		virtual bool Same(LogicalExpression const *other) const = 0;
+		bool Same(LogicalExpression const *other)
+		{
+			if (!other)
+			{
+				return false;
+			}
+			return !(m_md5.Difference(other->m_md5));
+		}
+
+		ExpressionMD5 const &MD5() const
+		{
+			m_md5.Init();
+			char flags = m_disabled ? 1 : 0;
+			m_md5.Add(&flags, sizeof(flags));
+			CalcMD5();
+			return m_md5;
+		}
+		bool m_disabled;
+	protected:
+		virtual void CalcMD5() const = 0;
+		mutable ExpressionMD5 m_md5;
+
+};
+
+class Operators
+{
+public:
+	enum E_OPERATOR
+	{
+		NOT,
+		AND,
+		OR,
+		TAG,
+		TYPE,
+		OFF,
+		INVALID
+	};
+
 };
 
 class Type
@@ -103,13 +206,6 @@ class Type
 		{
 		}
 
-		bool Same(LogicalExpression const *other) const
-		{
-			Type const *o = dynamic_cast<Type const *>(other);
-
-			return o && (o->m_type == m_type);
-		}
-
 		Type(TYPE type)
 		{
 			m_type = type;
@@ -138,6 +234,14 @@ class Type
 			return S_IGNORE;
 		}
 
+	protected:
+		void CalcMD5() const
+		{
+			int op = (int)(Operators::TYPE);
+			m_md5.Add(&op, sizeof(op));
+			m_md5.Add(&m_type, sizeof(m_type));
+			m_md5.Finish();
+		}
 	private:
 		TYPE m_type;
 		Type() {} // don't use plz
@@ -167,12 +271,14 @@ class Not
 		{
 		}
 
-		bool Same(LogicalExpression const *other) const
+		void CalcMD5() const
 		{
-			Not const *o = dynamic_cast<Not const *>(other);
-
-			return o && m_children->Same(o->m_children);
+			int op = (int)(Operators::NOT);
+			m_md5.Add(&op, sizeof(op));
+			m_md5.Add(m_children->MD5());
+			m_md5.Finish();
 		}
+
 
 };
 
@@ -227,32 +333,17 @@ class And
 			//!todo
 		}
 
-		bool Same(LogicalExpression const *other) const
+		void CalcMD5() const
 		{
-			And const *o = dynamic_cast<And const *>(other);
-
-			if (!o) // other is not same type
+			int op = (int)(Operators::AND);
+			m_md5.Add(&op, sizeof(op));
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
 			{
-				return false;
+				m_md5.Add(l->MD5());
 			}
-
-			LogicalExpression *l, *ol;
-			for (l = m_children, ol = other->m_children; l && ol; l = static_cast<LogicalExpression *>(l->m_next), ol = static_cast<LogicalExpression *>(ol->m_next))
-			{
-				if (!l->Same(ol))
-				{
-					return false; // other's child differs
-				}
-			}
-
-			if (l || ol) // other has different amount of children
-			{
-				return false;
-			}
-
-
-			return true;
+			m_md5.Finish();
 		}
+
 
 };
 
@@ -313,31 +404,15 @@ class Or
 			//!todo
 		}
 
-		bool Same(LogicalExpression const *other) const
+		void CalcMD5() const
 		{
-			Or const *o = dynamic_cast<Or const *>(other);
-
-			if (!o) // other is not same type
+			int op = (int)(Operators::OR);
+			m_md5.Add(&op, sizeof(op));
+			for (LogicalExpression *l = m_children; l; l = static_cast<LogicalExpression *>(l->m_next))
 			{
-				return false;
+				m_md5.Add(l->MD5());
 			}
-
-			LogicalExpression *l, *ol;
-			for (l = m_children, ol = other->m_children; l && ol; l = static_cast<LogicalExpression *>(l->m_next), ol = static_cast<LogicalExpression *>(ol->m_next))
-			{
-				if (!l->Same(ol))
-				{
-					return false; // other's child differs
-				}
-			}
-
-			if (l || ol) // other has different amount of children
-			{
-				return false;
-			}
-
-
-			return true;
+			m_md5.Finish();
 		}
 
 };
@@ -366,14 +441,6 @@ class Tag
 		{
 		}
 
-		bool Same(LogicalExpression const *other) const
-		{
-			Tag const *o = dynamic_cast<Tag const *>(other);
-
-			return o && m_tag->Equal(o->m_tag);
-		}
-
-
 		char const *Key() const
 		{
 			return m_tag->GetKey();
@@ -385,6 +452,17 @@ class Tag
 				return S_IGNORE;
 			return o->HasTag(*m_tag) ? S_TRUE : S_FALSE;
 		}
+
+		void CalcMD5() const
+		{
+			int op = (int)(Operators::TAG);
+			m_md5.Add(&op, sizeof(op));
+			TagIndex index = m_tag->Index();
+			m_md5.Add(&(index.m_keyIndex), sizeof(index.m_keyIndex));
+			m_md5.Add(&(index.m_valueIndex), sizeof(index.m_valueIndex));
+			m_md5.Finish();
+		}
+
 	private:
 		OsmTag *m_tag;
 
@@ -414,19 +492,6 @@ class ExpressionParser
 			m_mustColorDisabled = 0;
 		}
 
-		enum E_OPERATOR
-		{
-			NOT,
-			AND,
-			OR,
-			TAG,
-			TYPE,
-			OFF,
-			INVALID
-		};
-		
-	
-
 		LogicalExpression *Parse(char const *from, char *logError, unsigned maxLogErrorSize, unsigned *errorPos, RuleDisplay *display = NULL)
 		{
 			int pos = 0;
@@ -439,7 +504,7 @@ class ExpressionParser
 
 		void EatSpace(char const *s, int *pos);
 
-		E_OPERATOR MatchOperator(char const *s, int *pos, bool *disabled);
+		Operators::E_OPERATOR MatchOperator(char const *s, int *pos, bool *disabled);
 		
 		char *ParseString(char const *f, int *pos, char *logError, unsigned maxLogErrorSize, unsigned *errorPos);
 		

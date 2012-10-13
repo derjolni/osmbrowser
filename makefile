@@ -9,7 +9,7 @@
 
 CPP_OBJECTS_BARE= wxmain wxcanvas osmcanvas osm parse s_expr rulecontrol frame renderer tiledrawer cairorenderer info wxcairo utils polygonassembler slabarray
 
-C_OBJECTS_BARE =
+C_OBJECTS_BARE = external-libs/md5/md5
 
 LIBS= -lexpat `wx-config --libs` `pkg-config cairo --libs`
 
@@ -19,8 +19,8 @@ CC=gcc
 CXX=g++
 LD=g++
 
-CFLAGS = -Wall -Werror -O3 -ggdb -D_FILE_OFFSET_BITS=64 -std=c++0x
-CXXFLAGS = $(CFLAGS) `wx-config --cxxflags` `pkg-config cairo --cflags`
+CFLAGS = -Wall -Werror -O0 -ggdb -D_FILE_OFFSET_BITS=64
+CXXFLAGS = $(CFLAGS) `wx-config --cxxflags` `pkg-config cairo --cflags` -std=c++0x
 LDFLAGS = -ggdb
 
 RM=rm -f
