@@ -587,6 +587,18 @@ class IdObjectWithTags
 			return m_tags ? m_tags->HasTag(t) : false;
 		}
 
+		void StealTags(IdObjectWithTags *other)
+		{
+			while (other->m_tags)
+			{
+				OsmTag *next = (OsmTag *)(other->m_tags->m_next);
+				other->m_tags->m_next = m_tags;
+				m_tags = other->m_tags;
+				other->m_tags = next;
+			}
+		}
+
+		bool HasTags() { return m_tags != NULL; }
 
 		OsmTag *m_tags;
 };
