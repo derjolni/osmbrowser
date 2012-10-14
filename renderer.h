@@ -5,6 +5,7 @@
 #define __RENDERER_H__
 
 #include "osm.h"
+#include "s_expr.h"
 #include <wx/dcmemory.h>
 
 class Renderer
@@ -27,6 +28,15 @@ class Renderer
 			R_INNER,
 			R_LINE
 		};
+
+		virtual void StartTile(double x, double y, double w, double h, ExpressionMD5 md5) // the renderer *can * use this to implement cacheing. the MD5 is an md5 of the draw/color rules
+		{
+		}
+
+		virtual void EndTile()
+		{
+		}
+
 		virtual void Begin(Renderer::TYPE type, int layer) = 0;
 		virtual void AddPoint(double x, double y, double xshift = 0, double yshift = 0) = 0;
 		virtual void End() = 0;
