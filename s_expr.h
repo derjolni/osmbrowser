@@ -113,6 +113,7 @@ class ExpressionMD5
 			assert(!m_inited);
 			md5_init(&m_md5);
 			m_inited = true;
+			m_finished =false;
 		}
 		md5_state_t m_md5;
 		bool m_finished, m_inited;
