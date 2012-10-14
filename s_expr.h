@@ -35,7 +35,7 @@ class ExpressionMD5
 		void Add(ExpressionMD5 const &other)
 		{
 			assert(m_inited);
-			assert(other.Finished());
+			assert(!other.m_inited || other.m_finished);
 			Add(other.m_digest, 16);
 		}
 
@@ -106,8 +106,6 @@ class ExpressionMD5
 			}
 		}
 
-	private:
-		friend class LogicalExpression;
 		void Init()
 		{
 			assert(!m_inited);
@@ -115,6 +113,7 @@ class ExpressionMD5
 			m_inited = true;
 			m_finished =false;
 		}
+	private:
 		md5_state_t m_md5;
 		bool m_finished, m_inited;
 		char m_digest[16];
@@ -179,6 +178,7 @@ class LogicalExpression
 			char flags = m_disabled ? 1 : 0;
 			m_md5.Add(&flags, sizeof(flags));
 			CalcMD5();
+			m_md5.Finish();
 			return m_md5;
 		}
 		bool m_disabled;
@@ -296,7 +296,6 @@ class Type
 			int op = (int)(Operators::TYPE);
 			m_md5.Add(&op, sizeof(op));
 			m_md5.Add(&m_type, sizeof(m_type));
-			m_md5.Finish();
 		}
 	private:
 		TYPE m_type;
@@ -349,7 +348,6 @@ class Not
 			int op = (int)(Operators::NOT);
 			m_md5.Add(&op, sizeof(op));
 			m_md5.Add(m_children[0]->MD5());
-			m_md5.Finish();
 		}
 
 
@@ -434,7 +432,6 @@ class And
 			{
 				m_md5.Add(m_children[i]->MD5());
 			}
-			m_md5.Finish();
 		}
 
 
@@ -525,7 +522,6 @@ class Or
 			{
 				m_md5.Add(m_children[i]->MD5());
 			}
-			m_md5.Finish();
 		}
 
 };
@@ -583,7 +579,6 @@ class Tag
 			TagIndex index = m_tag->Index();
 			m_md5.Add(&(index.m_keyIndex), sizeof(index.m_keyIndex));
 			m_md5.Add(&(index.m_valueIndex), sizeof(index.m_valueIndex));
-			m_md5.Finish();
 		}
 
 	private:

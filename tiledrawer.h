@@ -6,6 +6,7 @@
 
 #include "osm.h"
 #include "renderer.h"
+#include "s_expr.h"
 #include <wx/app.h>
 
 class TileList;
