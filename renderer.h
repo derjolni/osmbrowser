@@ -29,7 +29,7 @@ class Renderer
 			R_LINE
 		};
 
-		virtual void StartTile(double x, double y, double w, double h, ExpressionMD5 md5) // the renderer *can * use this to implement cacheing. the MD5 is an md5 of the draw/color rules
+		virtual void StartTile(double x, double y, double w, double h, ExpressionMD5 const &md5) // the renderer *can * use this to implement cacheing. the MD5 is an md5 of the draw/color rules
 		{
 		}
 

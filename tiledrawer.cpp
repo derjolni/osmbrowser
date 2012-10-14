@@ -77,6 +77,19 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 
 		job->m_numTilesToRender = job->m_visibleTiles->GetSize();
 		job->m_numTilesRendered = 0;
+
+		m_rulesMD5.Init();
+		m_rulesMD5.Add("0", 1); // make sure there is someting in it in case there are no rules
+		if (m_drawRule)
+		{
+			m_rulesMD5.Add(m_drawRule->MD5());
+		}
+		if (m_colorRules)
+		{
+			m_rulesMD5.Add(m_colorRules->MD5());
+		}
+		m_rulesMD5.Finish();
+
 	}
 
 	if (!job->m_visibleTiles || job->m_finished)
@@ -89,6 +102,8 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	while (job->m_curTile && !mustCancel && (count++ < maxNumToRender))
 	{
 		OsmTile *t = job->m_curTile->m_tile;
+
+		job->m_renderer->StartTile(t->m_x, t->m_y, t->m_h, t->m_w, m_rulesMD5);
 		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
 		{
 			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);

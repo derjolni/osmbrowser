@@ -396,6 +396,8 @@ class TileDrawer
 
 		void LonLatToIndex(double lon, double lat, int *x, int *y);
 
+		ExpressionMD5 m_rulesMD5;
+
 		OsmTileArray m_tiles;
 		OsmTile ***m_tileArray;
 		unsigned m_xNum, m_yNum;
