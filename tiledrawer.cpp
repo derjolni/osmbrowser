@@ -136,8 +136,12 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 				job->m_curTile = job->m_visibleTiles;
 			}
 		}
+		DrawOverlay(job->m_renderer, true);
 	}
-	DrawOverlay(job->m_renderer, true);
+	else
+	{
+		DrawOverlay(job->m_renderer, false);
+	}
 
 	if (!job->m_curTile)
 	{
