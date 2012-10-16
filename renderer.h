@@ -8,6 +8,8 @@
 #include "s_expr.h"
 #include <wx/dcmemory.h>
 
+class OsmTile;
+
 class Renderer
 {
 	public:
@@ -29,14 +31,16 @@ class Renderer
 			R_LINE
 		};
 
-		virtual void StartTile(double x, double y, double w, double h, ExpressionMD5 const &md5) // the renderer *can * use this to implement cacheing. the MD5 is an md5 of the draw/color rules
+		virtual bool StartTile(OsmTile *t, ExpressionMD5 const &md5) // the renderer *can * use this to implement cacheing. the MD5 is an md5 of the draw/color rules
+		{
+			return false;
+		}
+
+		virtual void EndTile(OsmTile *t, ExpressionMD5 const &md5)
 		{
 		}
 
-		virtual void EndTile()
-		{
-		}
-
+		virtual void ClearOutput() = 0;
 		virtual void Begin(Renderer::TYPE type, int layer) = 0;
 		virtual void AddPoint(double x, double y, double xshift = 0, double yshift = 0) = 0;
 		virtual void End() = 0;
@@ -76,7 +80,7 @@ class Renderer
 		virtual void SetFillColor(int r, int g, int b, int a = 0) = 0;
 		virtual void SetLineWidth(int width) = 0;
 
-		virtual void Clear(int layer = -1) = 0;
+		virtual void ClearLayer(int layer = -1) = 0;
 
 		// merge all layers and output to screen
 		virtual void Commit() = 0;

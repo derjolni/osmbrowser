@@ -6,6 +6,168 @@
 #include "wxcairo.h"
 
 
+TileCacheEntry::TileCacheEntry(unsigned id, wxBitmap const &src, wxRect const &rect, ExpressionMD5 const &md5, TileCacheEntry *next)
+	: IdObject(id)
+{
+	m_bitmap = src.GetSubBitmap(rect);
+	wxMemoryDC dc(m_bitmap);
+
+	dc.SetPen(*wxRED_PEN);
+	dc.SetBrush(*wxRED_BRUSH);
+	dc.DrawCircle(rect.GetWidth()/2,rect.GetHeight()/2, rect.GetWidth()/3);
+
+
+	m_md5 = md5;
+	m_next = next;
+	if (m_next)
+	{
+		m_next->m_prev = this;
+	}
+	m_prev = NULL;
+}
+
+TileCacheEntry::~TileCacheEntry()
+{
+	assert(!m_prev);
+	assert(!m_next);
+}
+
+
+void TileCacheEntry::ToHead(TileCacheEntry **head, TileCacheEntry **tail)
+{
+	if (!m_prev)
+	{
+		assert(*head == this);
+		return;
+	}
+
+	assert(*head != this);
+	m_prev->m_next = m_next;
+
+	if (m_next)
+	{
+		m_next->m_prev = m_prev;
+	}
+	else
+	{
+		assert(*tail == this);
+		*tail = m_prev;
+	}
+	m_prev = NULL;
+	m_next = *head;
+	m_next->m_prev = this;
+	*head = this;
+}
+
+
+
+TileCache::TileCache(int size)
+	: m_tiles(size)
+{
+	m_size = size;
+	m_ageListHead = m_ageListTail = NULL;
+	m_num = 0;
+}
+
+TileCache::~TileCache()
+{
+	for (TileCacheEntryMap::iterator it = m_tiles.begin(); it != m_tiles.end(); it++)
+	{
+		if (it->second)
+		{
+			it->second->m_next = it->second->m_prev = NULL;
+			delete it->second;
+		}
+	}
+}
+
+
+void TileCache::Delete(TileCacheEntry *t)
+{
+	m_num--;
+	m_tiles.erase(t->m_id);
+	if (!t->m_prev)
+	{
+		assert(t = m_ageListHead);
+		m_ageListHead = t->m_next;
+		if (m_ageListHead)
+		{
+			m_ageListHead->m_prev = NULL;
+		}
+		t->m_next = t->m_prev = NULL;
+		if (t == m_ageListTail)
+		{
+			m_ageListTail = NULL;
+		}
+		delete t;
+		return;
+	}
+
+	assert(t != m_ageListHead);
+
+	t->m_prev->m_next = t->m_next;
+
+	if(t->m_next)
+	{
+		t->m_next->m_prev = t->m_prev;
+	}
+	else
+	{
+		assert(t == m_ageListTail);
+		m_ageListTail = t->m_prev;
+		m_ageListTail->m_next = NULL;
+	}
+
+	t->m_next = t->m_prev = NULL;
+	delete t;
+}
+
+void TileCache::Add(OsmTile *tile,ExpressionMD5 &md5, wxBitmap &bmp, wxRect const &rect)
+{
+	TileCacheEntry *e = m_tiles[tile->m_id];
+
+	if (e)
+	{
+		if (!(e->MD5().Difference(md5)))
+		{
+			e->ToHead(&m_ageListHead, &m_ageListTail);
+			return;
+		}
+
+		if(e->m_next)
+		{
+			e->m_next->m_prev = e->m_prev;
+		}
+		Delete(e);
+	}
+	e = new TileCacheEntry(tile->m_id, bmp, rect, md5, m_ageListHead);
+	m_tiles[tile->m_id] = e;
+	m_ageListHead = e;
+	if (!m_ageListTail)
+	{
+		m_ageListTail = e;
+	}
+	m_num++;
+	if (m_num > m_size)
+	{
+		Delete(m_ageListTail);
+	}
+
+}
+
+TileCacheEntry *TileCache::Get(OsmTile *tile, ExpressionMD5 const &md5)
+{
+	TileCacheEntry *ret = m_tiles[tile->m_id];
+
+	if (ret && !(ret->MD5().Difference(md5)))
+	{
+		return ret;
+	}
+
+	return NULL;
+}
+
+
 void CairoRenderer::Begin(Renderer::TYPE type, int layer)
 {
 	m_type = type;
@@ -46,10 +208,19 @@ void CairoRenderer::End()
 	}
 }
 
+void CairoRenderer::ClearOutput()
+{
+	if (m_outputBitmap)
+	{
+		ClearToWhite(m_outputBitmap);
+	}
+}
+
+
 void CairoRenderer::Commit()
 {
 
-	ClearToWhite(m_outputBitmap);
+//	ClearToWhite(m_outputBitmap);
 
 	for (int i = 0; i < m_numLayers; i++)
 	{

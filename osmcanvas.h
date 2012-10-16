@@ -56,6 +56,7 @@ class OsmCanvas
 		void Redraw()
 		{
 			m_restart = true;
+			m_timer.Start(5, true);
 		}
 
 		void SetRuleControls(RuleControl *rules, ColorRules *colors);
@@ -89,8 +90,8 @@ class OsmCanvas
 
 			if (m_done)
 				Draw(NULL);
-
-			m_timer.Start(1, true);
+			else
+				m_timer.Start(5,true);
 		}
 
 		double m_scale;

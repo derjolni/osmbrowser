@@ -564,6 +564,8 @@ class IdObjectStore
 		unsigned m_mask;
 		wxArrayInt m_listSizes;
 
+
+
 		void AddObject(IdObject *object);
 		IdObject *GetObject(unsigned id);
 };
@@ -848,7 +850,6 @@ class OsmData
 	IdObjectStore m_nodes;
 	IdObjectStore m_ways;
 	IdObjectStore m_relations;
-	
 
 	// bounding box;
 	double m_minlat, m_maxlat, m_minlon, m_maxlon;

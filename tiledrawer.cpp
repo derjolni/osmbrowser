@@ -103,17 +103,16 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	{
 		OsmTile *t = job->m_curTile->m_tile;
 
-		job->m_renderer->StartTile(t->m_x, t->m_y, t->m_h, t->m_w, m_rulesMD5);
-		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
+
+		if (t->OverLaps(job->m_bb) && t->m_ways)
 		{
-			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);
-		}
-		
-		if (t->OverLaps(job->m_bb))
-		{
-			switch(job->m_renderState)
+			if (!job->m_renderer->StartTile(t, m_rulesMD5))
 			{
-				case RenderJob::RELATIONS:
+				if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
+				{
+					Rect(job->m_renderer, wxEmptyString, *t, -1, 0,55,55, 200, 0);
+				}
+			
 				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 				{
 					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
@@ -123,24 +122,14 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 							RenderRelation(job, rl->m_relation);
 						}
 					}
-				}	// for way
-				break;
-				case RenderJob::WAYS:
-				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
-				{
 					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
 					{
 						RenderWay(job, w->m_way);
 					}
-				}	// for way
-				break;
-				case RenderJob::NODES:
-				break;
+				}
+				job->m_renderer->EndTile(t, m_rulesMD5);
 			}
-		}  // if overlaps
-
-		//not needed anymore for cairo renderer. move to mustcancel callback?
-
+		}
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
 		job->m_numTilesRendered++;
 
@@ -155,15 +144,8 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 
 	if (!job->m_curTile)
 	{
-		job->m_renderState = static_cast<RenderJob::RENDERSTATE>(job->m_renderState + 1);
-
-		if (job->m_renderState <= RenderJob::NODES)
+		if (job->m_curLayer >= 0)
 		{
-					job->m_curTile = job->m_visibleTiles;
-		}
-		else if (job->m_curLayer >= 0)
-		{
-			job->m_renderState = RenderJob::RELATIONS;
 			job->m_curLayer++;
 			if (job->m_curLayer < NUMLAYERS)
 			{
@@ -472,7 +454,7 @@ void TileDrawer::DrawOverlay(Renderer *r, bool clear)
 	}
 
 	if (clear)
-		r->Clear(NUMLAYERS);
+		r->ClearLayer(NUMLAYERS);
 		
 	if (m_selection)
 	{

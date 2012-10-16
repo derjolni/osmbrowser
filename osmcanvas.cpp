@@ -119,7 +119,7 @@ OsmCanvas::OsmCanvas(wxApp * app, MainFrame *mainFrame, wxWindow *parent, wxStri
 
 	m_tileDrawer->SetSelectionColor(255,100,100);
 
-	m_timer.Start(1, true);
+	m_timer.Start(5, true);
 }
 
 void OsmCanvas::Render(bool force)
@@ -153,7 +153,8 @@ void OsmCanvas::Render(bool force)
 	
 	if (m_restart)
 	{
-		m_renderer->Clear();
+		m_renderer->ClearLayer();
+		m_renderer->ClearOutput();
 		delete m_renderJob;
 		m_renderJob = NULL;
 		m_restart = false;
@@ -175,7 +176,7 @@ void OsmCanvas::Render(bool force)
 	{
 		m_mainFrame->SetProgress(-1);
 	}
-	
+
 	m_busy = false;
 	return;
 }
