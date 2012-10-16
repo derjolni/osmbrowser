@@ -96,32 +96,20 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		
 		if (t->OverLaps(job->m_bb))
 		{
-			switch(job->m_renderState)
+			for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 			{
-				case RenderJob::RELATIONS:
-				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+				for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
 				{
-					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
+					if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
 					{
-						if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
-						{
-							RenderRelation(job, rl->m_relation);
-						}
+						RenderRelation(job, rl->m_relation);
 					}
-				}	// for way
-				break;
-				case RenderJob::WAYS:
-				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+				}
+				if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
 				{
-					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
-					{
-						RenderWay(job, w->m_way);
-					}
-				}	// for way
-				break;
-				case RenderJob::NODES:
-				break;
-			}
+					RenderWay(job, w->m_way);
+				}
+			}	// for way
 		}  // if overlaps
 
 		//not needed anymore for cairo renderer. move to mustcancel callback?
@@ -129,7 +117,7 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
 		job->m_numTilesRendered++;
 
-		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender*3);
+		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender);
 		if (job->m_curLayer >= 0)
 		{
 			progress /= NUMLAYERS;
@@ -140,15 +128,8 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 
 	if (!job->m_curTile)
 	{
-		job->m_renderState = static_cast<RenderJob::RENDERSTATE>(job->m_renderState + 1);
-
-		if (job->m_renderState <= RenderJob::NODES)
+		if (job->m_curLayer >= 0)
 		{
-					job->m_curTile = job->m_visibleTiles;
-		}
-		else if (job->m_curLayer >= 0)
-		{
-			job->m_renderState = RenderJob::RELATIONS;
 			job->m_curLayer++;
 			if (job->m_curLayer < NUMLAYERS)
 			{
