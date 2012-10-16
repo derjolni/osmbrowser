@@ -163,14 +163,6 @@ class LogicalExpression
 		LogicalExpressionArray m_children;
 		virtual STATE GetValue(IdObjectWithTags *o) = 0;
 		virtual void Reorder() = 0;
-		bool Same(LogicalExpression const *other)
-		{
-			if (!other)
-			{
-				return false;
-			}
-			return !(m_md5.Difference(other->m_md5));
-		}
 
 		ExpressionMD5 const &MD5() const
 		{
@@ -683,7 +675,7 @@ class Rule
 				return true;
 			}
 
-			return !m_expr->Same(other.m_expr);
+			return MD5().Difference(other.MD5());
 		}
 
 		void Dump() const
@@ -756,7 +748,7 @@ class Rule
 			return m_expr && m_expr->Valid();
 		}
 
-		ExpressionMD5 const &MD5()
+		ExpressionMD5 const &MD5() const
 		{
 			static ExpressionMD5 s_empty;
 			return m_expr ? m_expr->MD5() : s_empty;
