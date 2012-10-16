@@ -315,7 +315,10 @@ class TileDrawer
 			
 			for (TileList *l = tiles; l; l = static_cast<TileList *>(l->m_next))
 			{
-				l->m_tile->AddWay(way);
+				if (way->Intersects(*(l->m_tile)))
+				{
+					l->m_tile->AddWay(way);
+				}
 			}
 
 

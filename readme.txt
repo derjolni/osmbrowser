@@ -4,6 +4,7 @@ dependencies:
          wxwidgets (version > 2.8)
          cairo	(with pdf support)
          expat (in non-widechar mode)
+         eigen3 (eigen2 probably also works, but you'll need to edit the makefile)
 If you have all the dependencies installed, just running make should do the trick. The executable will be called osmbrowse
 
 

@@ -13,6 +13,7 @@
 #include <wx/hashset.h>
 #include <wx/arrstr.h>
 #include <wx/dynarray.h>
+#include "Eigen/Geometry"
 #include "slabarray.h"
 #define DISTSQUARED(x1, y1, x2, y2)  (((x1) - (x2)) * ((x1) - (x2)) + ((y1) - (y2)) * ((y1) - (y2)))
 
@@ -147,8 +148,79 @@ class DRect
 			return ret;
 		}
 
+		bool Intersects(double x1, double y1, double x2, double y2) const
+		{
+			if (m_w < 0)
+			{
+				return false;
+			}
 
-		bool Contains(double x, double y)
+			Eigen::ParametrizedLine<double, 2> line = Eigen::ParametrizedLine<double, 2>::Through(Eigen::Vector2d(x1,y1),Eigen::Vector2d(x2,y2));
+
+			double lensq = (x1-x2) * (x1-x2) + (y1-y2) *(y1-y2);
+
+			Eigen::Hyperplane<double, 2>side = Eigen::Hyperplane<double, 2>::Through(Eigen::Vector2d(m_x,m_y), Eigen::Vector2d(m_x+m_w,m_y));
+
+			double intersect = line.intersection(side);
+
+			if (intersect >=0 && intersect * intersect < lensq)
+			{
+				double x = (line.origin() + intersect * line.direction())[0];
+
+				if (x > m_x && x < m_x + m_w)
+				{
+					return true;
+				}
+			}
+
+
+			side = Eigen::Hyperplane<double, 2>::Through(Eigen::Vector2d(m_x,m_y + m_h), Eigen::Vector2d(m_x+m_w,m_y + m_h));
+
+			intersect = line.intersection(side);
+
+			if (intersect >=0 && intersect * intersect < lensq)
+			{
+				double x = (line.origin() + intersect * line.direction())[0];
+
+				if (x > m_x && x < m_x + m_w)
+				{
+					return true;
+				}
+			}
+
+
+			side = Eigen::Hyperplane<double, 2>::Through(Eigen::Vector2d(m_x,m_y), Eigen::Vector2d(m_x,m_y + m_h));
+
+			intersect = line.intersection(side);
+
+			if (intersect >=0 && intersect * intersect < lensq)
+			{
+				double y = (line.origin() + intersect * line.direction())[1];
+
+				if (y > m_y && y < m_y + m_h)
+				{
+					return true;
+				}
+			}
+
+			side = Eigen::Hyperplane<double, 2>::Through(Eigen::Vector2d(m_x+m_w,m_y), Eigen::Vector2d(m_x+m_w,m_y + m_h));
+
+			intersect = line.intersection(side);
+
+			if (intersect >=0 && intersect * intersect < lensq)
+			{
+				double y = (line.origin() + intersect * line.direction())[1];
+
+				if (y > m_y && y < m_y + m_h)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		bool Contains(double x, double y) const
 		{
 			if (m_w < 0)
 			{
@@ -701,6 +773,7 @@ class OsmWay
 		return m_bb;
 	}
 
+	bool Intersects(DRect const &rect) const;
 
 	OsmNode *GetClosestNode(double lon, double lat, double *foundDistSquared);
 
