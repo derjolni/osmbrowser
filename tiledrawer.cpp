@@ -37,6 +37,7 @@ TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat
 	m_selection = NULL;
 	m_selectionColor = wxColour(255,0,0);
 	m_selectedWay = NULL;
+	m_selectedTile = NULL;
 
 	m_drawRule = NULL;
 	m_colorRules = NULL;
@@ -460,6 +461,16 @@ void TileDrawer::DrawOverlay(Renderer *r, bool clear)
 	if (m_selectedWay)
 	{
 		RenderWay(r, m_selectedWay, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
+	}
+
+	if (m_selectedTile)
+	{
+		for (TileWay *w = m_selectedTile->m_ways; w; w = (TileWay *)(w->m_next))
+		{
+			RenderWay(r, w->m_way, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
+
+		}
+		Rect(r, wxEmptyString, *m_selectedTile, -1, 255,55,55, 10, NUMLAYERS);
 	}
 }
 

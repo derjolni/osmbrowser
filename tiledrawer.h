@@ -403,6 +403,7 @@ class TileDrawer
 		OsmNode *m_selection;
 		OsmWay *m_selectedWay;
 		wxColour m_selectionColor;
+		OsmTile *m_selectedTile;
 };
 
 #endif
