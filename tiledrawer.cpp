@@ -89,29 +89,35 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	while (job->m_curTile && !mustCancel && (count++ < maxNumToRender))
 	{
 		OsmTile *t = job->m_curTile->m_tile;
-		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
+		if (t->m_ways)
 		{
-			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);
-		}
-		
-		if (t->OverLaps(job->m_bb))
-		{
-			for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
+			if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
 			{
-				for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
+				Rect(job->m_renderer, wxEmptyString, *t, -1, 0,155,55, 20, NUMLAYERS);
+			}
+			
+			if (t->OverLaps(job->m_bb))
+			{
+				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 				{
-					if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
+					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
 					{
-						RenderRelation(job, rl->m_relation);
+						if (!(job->m_renderedRelationIds.Has(rl->m_relation->m_id)))
+						{
+							RenderRelation(job, rl->m_relation);
+						}
 					}
-				}
-				if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
-				{
-					RenderWay(job, w->m_way);
-				}
-			}	// for way
-		}  // if overlaps
-
+					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
+					{
+						RenderWay(job, w->m_way);
+					}
+				}	// for way
+			}  // if overlaps
+		}
+		else
+		{
+			count--;
+		}
 		//not needed anymore for cairo renderer. move to mustcancel callback?
 
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
