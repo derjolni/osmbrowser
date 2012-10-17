@@ -32,6 +32,10 @@ class RuleControl
 		void Save(wxString const &group);
 		void Load(wxString const &group);
 
+		ExpressionMD5 const &MD5()
+		{
+			return m_rule.MD5();
+		}
 	private:
 		DECLARE_EVENT_TABLE();
 
@@ -157,7 +161,13 @@ class ColorRules
 				Remove(m_num - 1);
 			}
 		}
-		
+
+		ExpressionMD5 const&MD5()
+		{
+			CalcMD5();
+			return m_md5;
+		}
+
 
 		void Save(wxString const &name);
 		void Load(wxString const &name);
@@ -173,6 +183,29 @@ class ColorRules
 		wxWindow *m_parent;
 		wxSizer *m_sizer;
 		OsmCanvas *m_canvas;
+
+		void CalcMD5()
+		{
+			m_md5.Init();
+			for (int i = 0; i < m_num; i++)
+			{
+				unsigned char c[4];
+				wxColour col = m_pickers[i]->GetColour();
+				c[0] = col.Red();
+				c[1] = col.Green();
+				c[2] = col.Blue();
+				c[3] = col.Alpha();
+				m_md5.Add(c, 4);
+				char poly = m_checkBoxes[i]->IsChecked();
+				m_md5.Add(&poly, 1);
+				char layer = m_layers[i]->GetSelection();
+				m_md5.Add(&layer, 1);
+				m_md5.Add(m_rules[i]->MD5());
+			}
+			m_md5.Finish();
+		}
+
+		ExpressionMD5 m_md5;
 };
 
 

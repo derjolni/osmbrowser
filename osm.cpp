@@ -445,6 +445,40 @@ void OsmWay::Resolve(IdObjectStore *store)
 
 }
 
+bool OsmWay::Intersects(DRect const &rect) const
+{
+	assert(m_numResolvedNodes);
+	OsmNode *prev = NULL;
+	double px = 0, py = 0;
+	for (unsigned i = 0; i < m_numResolvedNodes; i++)
+	{
+		OsmNode *n = m_resolvedNodes[i];
+		if (n)
+		{
+			double x = n->Lon();
+			double y = n->Lat();
+			if (rect.Contains(x, y))
+			{
+				return true;
+			}
+			if (prev)
+			{
+				if (rect.Intersects(px,py,x,y))
+				{
+					return true;
+				}
+			}
+			prev = n;
+			px = x;
+			py = y;
+		}
+	}
+
+	return false;
+}
+
+
+
 void OsmRelation::Resolve(IdObjectStore *nodeStore, IdObjectStore *wayStore)
 {
 	OsmWay::Resolve(nodeStore);

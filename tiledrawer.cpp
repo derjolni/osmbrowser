@@ -38,6 +38,7 @@ TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat
 	m_selectionColor = wxColour(255,0,0);
 	m_selectedWay = NULL;
 	m_selectedRelation = NULL;
+	m_selectedTile = NULL;
 
 	m_drawRule = NULL;
 	m_colorRules = NULL;
@@ -90,16 +91,15 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 	while (job->m_curTile && !mustCancel && (count++ < maxNumToRender))
 	{
 		OsmTile *t = job->m_curTile->m_tile;
-		if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
+		if (t->m_ways)
 		{
-			Rect(job->m_renderer, wxEmptyString, *t, -1, 0,255,255, 200, NUMLAYERS);
-		}
-		
-		if (t->OverLaps(job->m_bb))
-		{
-			switch(job->m_renderState)
+			if (job->m_curLayer < 0) // curlayer < 0 means the renderer supports layers
 			{
-				case RenderJob::RELATIONS:
+				Rect(job->m_renderer, wxEmptyString, *t, -1, 0,155,55, 20, NUMLAYERS);
+			}
+			
+			if (t->OverLaps(job->m_bb))
+			{
 				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
 				{
 					for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = static_cast<OsmRelationList *>(rl->m_next))
@@ -109,28 +109,23 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 							RenderRelation(job, rl->m_relation);
 						}
 					}
-				}	// for way
-				break;
-				case RenderJob::WAYS:
-				for (TileWay *w = t->m_ways; w && !mustCancel; w = static_cast<TileWay *>(w->m_next))
-				{
 					if (!(job->m_renderedWayIds.Has(w->m_way->m_id)))
 					{
 						RenderWay(job, w->m_way);
 					}
 				}	// for way
-				break;
-				case RenderJob::NODES:
-				break;
-			}
-		}  // if overlaps
-
+			}  // if overlaps
+		}
+		else
+		{
+			count--;
+		}
 		//not needed anymore for cairo renderer. move to mustcancel callback?
 
 		job->m_curTile = static_cast<TileList *>(job->m_curTile->m_next);
 		job->m_numTilesRendered++;
 
-		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender*3);
+		double progress = static_cast<double>(job->m_numTilesRendered)/ (job->m_numTilesToRender);
 		if (job->m_curLayer >= 0)
 		{
 			progress /= NUMLAYERS;
@@ -141,23 +136,20 @@ bool TileDrawer::RenderTiles(RenderJob *job, int maxNumToRender)
 
 	if (!job->m_curTile)
 	{
-		job->m_renderState = static_cast<RenderJob::RENDERSTATE>(job->m_renderState + 1);
-
-		if (job->m_renderState <= RenderJob::NODES)
+		if (job->m_curLayer >= 0)
 		{
-					job->m_curTile = job->m_visibleTiles;
-		}
-		else if (job->m_curLayer >= 0)
-		{
-			job->m_renderState = RenderJob::RELATIONS;
 			job->m_curLayer++;
 			if (job->m_curLayer < NUMLAYERS)
 			{
 				job->m_curTile = job->m_visibleTiles;
 			}
 		}
+		DrawOverlay(job->m_renderer, true);
 	}
-	DrawOverlay(job->m_renderer, true);
+	else
+	{
+		DrawOverlay(job->m_renderer, false);
+	}
 
 	if (!job->m_curTile)
 	{
@@ -492,6 +484,15 @@ void TileDrawer::DrawOverlay(Renderer *r, bool clear)
 		RenderRelation(r, m_selectedRelation, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
 	}
 
+	if (m_selectedTile)
+	{
+		for (TileWay *w = m_selectedTile->m_ways; w; w = (TileWay *)(w->m_next))
+		{
+			RenderWay(r, w->m_way, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
+
+		}
+		Rect(r, wxEmptyString, *m_selectedTile, -1, 255,55,55, 10, NUMLAYERS);
+	}
 }
 
 //destroy the list when done. the TileSpans member will not be set

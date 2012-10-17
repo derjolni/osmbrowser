@@ -6,6 +6,7 @@
 
 #include "osm.h"
 #include "renderer.h"
+#include "s_expr.h"
 #include <wx/app.h>
 
 class TileList;
@@ -252,7 +253,6 @@ class RenderJob
 			m_numTilesToRender = m_numTilesRendered = 0;
 			m_finished = false;
 			m_renderer = renderer;
-			m_renderState = RELATIONS;
 		}
 		
 		virtual ~RenderJob() { }
@@ -261,18 +261,11 @@ class RenderJob
 		virtual bool MustCancel(double progress) = 0;
 
 		bool Finished() { return m_finished; }
-		enum RENDERSTATE
-		{
-			RELATIONS,
-			WAYS,
-			NODES
-		};
 
 	private:
 		friend class TileDrawer;
 		TileList *m_visibleTiles, *m_curTile;
 		int m_numTilesToRender, m_numTilesRendered;
-		RENDERSTATE m_renderState;
 		int m_curLayer;
 		DRect m_bb;
 		bool m_finished;
@@ -322,7 +315,10 @@ class TileDrawer
 			
 			for (TileList *l = tiles; l; l = static_cast<TileList *>(l->m_next))
 			{
-				l->m_tile->AddWay(way);
+				if (way->Intersects(*(l->m_tile)))
+				{
+					l->m_tile->AddWay(way);
+				}
 			}
 
 
@@ -410,6 +406,7 @@ class TileDrawer
 		OsmWay *m_selectedWay;
 		OsmRelation *m_selectedRelation;
 		wxColour m_selectionColor;
+		OsmTile *m_selectedTile;
 };
 
 #endif
