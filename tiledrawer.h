@@ -367,6 +367,7 @@ class TileDrawer
 
 		// with explicit colours
 		void RenderWay(Renderer *r, OsmWay *w, wxColour lineColour, bool polygon, wxColour fillColour, int width, int layer);
+		void RenderRelation(Renderer *rnd, OsmRelation *r, wxColour lineColour, bool polygon, wxColour fillColour, int width, int layer);
 
 		// with default colours
 		void RenderWay(RenderJob *j, OsmWay *w);
@@ -389,6 +390,7 @@ class TileDrawer
 		}
 
 		bool SetSelectedWay(OsmWay *way);
+		bool SetSelectedRelation(OsmRelation *rel);
 
 		bool SetSelectionColor(int r, int g, int b);
 
@@ -406,6 +408,7 @@ class TileDrawer
 
 		OsmNode *m_selection;
 		OsmWay *m_selectedWay;
+		OsmRelation *m_selectedRelation;
 		wxColour m_selectionColor;
 };
 

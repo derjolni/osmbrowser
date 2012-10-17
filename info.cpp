@@ -16,8 +16,16 @@ class InfoData
 		InfoData(OsmWay *way)
 		{
 			m_way = way;
+			m_relation = NULL;
 		}
 
+		InfoData(OsmRelation *rel)
+		{
+			m_relation = rel;
+			m_way = NULL;
+		}
+
+		OsmRelation *m_relation;
 		OsmWay *m_way;
 
 };
@@ -42,7 +50,11 @@ void InfoTreeCtrl::SetInfo(TileWay *ways)
 
 	for (TileWay *w = ways; w ; w = static_cast<TileWay *>(w->m_next))
 	{
-		AddWay(root, w->m_way);
+		wxTreeItemId wayId = AddWay(root, w->m_way);
+		for (OsmRelationList *rl = w->m_way->m_relations; rl; rl = (OsmRelationList *)(rl->m_next))
+		{
+			AddRelation(wayId, rl->m_relation);
+		}
 	}
 
 	ExpandAll();
@@ -50,10 +62,10 @@ void InfoTreeCtrl::SetInfo(TileWay *ways)
 
 
 
-void InfoTreeCtrl::AddWay(wxTreeItemId const &root, OsmWay *way)
+wxTreeItemId InfoTreeCtrl::AddWay(wxTreeItemId const &root, OsmWay *way)
 {
 	InfoData *data = new InfoData(way);
-	wxTreeItemId w = AppendItem(root, wxString::Format(wxT("%ud"), way->m_id), -1, -1, data);
+	wxTreeItemId w = AppendItem(root, wxString::Format(wxT("way:%ud"), way->m_id), -1, -1, data);
 
 	for (OsmTag *t = way->m_tags; t; t = static_cast<OsmTag *>(t->m_next))
 	{
@@ -72,7 +84,34 @@ void InfoTreeCtrl::AddWay(wxTreeItemId const &root, OsmWay *way)
 		
 		AppendItem(w, tag);
 	}
+	return w;
 }
+
+wxTreeItemId InfoTreeCtrl::AddRelation(wxTreeItemId const &parent, OsmRelation *rel)
+{
+	InfoData *data = new InfoData(rel);
+	wxTreeItemId r = AppendItem(parent, wxString::Format(wxT("rel:%ud"), rel->m_id), -1, -1, data);
+
+	for (OsmTag *t = rel->m_tags; t; t = static_cast<OsmTag *>(t->m_next))
+	{
+		char const *k = t->GetKey();
+		char const *v = t->GetValue();
+
+
+		wxString tag(k, wxConvUTF8);
+
+		if (v)
+		{
+			tag += wxT("=");
+			tag += wxString(v, wxConvUTF8);
+		}
+
+		
+		AppendItem(r, tag);
+	}
+	return r;
+}
+
 
 void InfoTreeCtrl::SetCanvas(OsmCanvas *canvas)
 {
@@ -96,10 +135,12 @@ void InfoTreeCtrl::OnSelection(wxTreeEvent &evt)
 	if (data)
 	{
 		m_canvas->SelectWay(data->m_way);
+		m_canvas->SelectRelation(data->m_relation);
 	}
 	else
 	{
 		m_canvas->SelectWay(NULL);
+		m_canvas->SelectRelation(NULL);
 	}
 }
 

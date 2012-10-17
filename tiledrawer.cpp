@@ -37,6 +37,7 @@ TileDrawer::TileDrawer(double minLon,double minLat, double maxLon, double maxLat
 	m_selection = NULL;
 	m_selectionColor = wxColour(255,0,0);
 	m_selectedWay = NULL;
+	m_selectedRelation = NULL;
 
 	m_drawRule = NULL;
 	m_colorRules = NULL;
@@ -173,6 +174,37 @@ void TileDrawer::Rect(Renderer *renderer, wxString const &text, double lon1, dou
 }
 
 
+void TileDrawer::RenderRelation(Renderer *rnd, OsmRelation *r, wxColour lineColour, bool poly, wxColour fillColour, int width, int layer)
+{
+	if (!poly)
+	{
+		for (unsigned i = 0; i < r->m_numResolvedWays; i++)
+		{
+			if (r->m_resolvedWays[i])
+			{
+				RenderWay(rnd, r->m_resolvedWays[i], lineColour, poly, fillColour, width, layer);
+//					job->m_renderedWayIds.Add(r->m_resolvedWays[i]->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+			}
+		}
+	}
+	else
+	{
+		PolygonAssembler a;
+		for (unsigned i = 0; i < r->m_numResolvedWays; i++)
+		{
+			OsmWay *w = r->m_resolvedWays[i];
+			if (w)
+			{
+				a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
+//					job->m_renderedWayIds.Add(w->m_id); // if it has been drawn in the relation, don't draw it again on it's own
+			}
+		}
+		rnd->SetLineColor(lineColour.Red(), lineColour.Green(), lineColour.Blue());
+		rnd->SetFillColor(fillColour.Red(), fillColour.Green(), fillColour.Blue());
+		a.Render(rnd, layer);
+	}
+}
+
 void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 {
 
@@ -200,35 +232,10 @@ void TileDrawer::RenderRelation(RenderJob *job, OsmRelation *r)
 
 	if (job->m_curLayer < 0 || job->m_curLayer == layer)
 	{
-		if (!poly)
-		{
-			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
-			{
-				if (r->m_resolvedWays[i])
-				{
-					RenderWay(job->m_renderer, r->m_resolvedWays[i], c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
-//					job->m_renderedWayIds.Add(r->m_resolvedWays[i]->m_id); // if it has been drawn in the relation, don't draw it again on it's own
-				}
-			}
-		}
-		else
-		{
-			PolygonAssembler a;
-			for (unsigned i = 0; i < r->m_numResolvedWays; i++)
-			{
-				OsmWay *w = r->m_resolvedWays[i];
-				if (w)
-				{
-					a.AddWay(w, r->m_roles[i] == IdObjectWithRole::INNER);
-//					job->m_renderedWayIds.Add(w->m_id); // if it has been drawn in the relation, don't draw it again on it's own
-				}
-			}
-			job->m_renderer->SetLineColor(c.Red(), c.Green(), c.Blue());
-			job->m_renderer->SetFillColor(c.Red(), c.Green(), c.Blue());
-			a.Render(job->m_renderer, job->m_curLayer <0 ? layer : 0);
-		}
-		job->m_renderedRelationIds.Add(r->m_id);
+		RenderRelation(job->m_renderer, r, c, poly, c, 1, job->m_curLayer <0 ? layer : 0);
 	}
+	job->m_renderedRelationIds.Add(r->m_id);
+
 }
 
 // render using default colours. should plug in rule engine here
@@ -447,6 +454,15 @@ bool TileDrawer::SetSelectedWay(OsmWay *way)
 	return false;
 }
 
+bool TileDrawer::SetSelectedRelation(OsmRelation *rel)
+{
+	if (rel != m_selectedRelation)
+	{
+		m_selectedRelation = rel;
+		return true;
+	}
+	return false;
+}
 
 
 void TileDrawer::DrawOverlay(Renderer *r, bool clear)
@@ -470,6 +486,12 @@ void TileDrawer::DrawOverlay(Renderer *r, bool clear)
 	{
 		RenderWay(r, m_selectedWay, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
 	}
+
+	if (m_selectedRelation)
+	{
+		RenderRelation(r, m_selectedRelation, m_selectionColor, false, wxColour(0,0,0), 3, NUMLAYERS);
+	}
+
 }
 
 //destroy the list when done. the TileSpans member will not be set

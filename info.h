@@ -22,7 +22,8 @@ class InfoTreeCtrl
 		void SetCanvas(OsmCanvas *c);
 
 	private:
-		void AddWay(wxTreeItemId const &root, OsmWay *way);
+		wxTreeItemId AddWay(wxTreeItemId const &root, OsmWay *way);
+		wxTreeItemId AddRelation(wxTreeItemId const &root, OsmRelation *rel);
 
 		OsmCanvas *m_canvas;
 

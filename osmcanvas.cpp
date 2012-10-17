@@ -366,6 +366,17 @@ void OsmCanvas::SelectWay(OsmWay *way)
 	}
 }
 
+void OsmCanvas::SelectRelation(OsmRelation *rel)
+{
+	if (m_tileDrawer->SetSelectedRelation(rel))
+	{
+		m_tileDrawer->DrawOverlay(m_renderer, true);
+		m_renderer->Commit();
+		Draw();
+	}
+}
+
+
 void OsmCanvas::SaveView(wxString const &fileName, MainFrame *mainFrame)
 {
 	int w = m_backBuffer.GetWidth();

@@ -65,6 +65,7 @@ class OsmCanvas
 		void SaveView(wxString const &fileName, MainFrame *mainFrame);
 
 		void SelectWay(OsmWay *way);
+		void SelectRelation(OsmRelation *rel);
 	private:
 		CanvasJob *m_renderJob;
 		void SetupRenderer();
