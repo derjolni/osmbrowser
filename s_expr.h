@@ -170,7 +170,7 @@ class LogicalExpression
 			{
 				return false;
 			}
-			return !(m_md5.Difference(other->m_md5));
+			return !(MD5().Difference(other->MD5()));
 		}
 
 		ExpressionMD5 const &MD5() const
